@@ -2,42 +2,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Add to your global.css */
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap');
-
-.font-handwritten {
-  font-family: 'Caveat', cursive;
-}
-
-/* Transcript message hover effect */
-.transcript-message p {
-  transition: all 0.2s ease;
-  border-left: 2px solid transparent;
-}
-
-.transcript-message p:hover {
-  border-left-color: hsl(var(--primary));
-  padding-left: 1rem !important;
-}
-
-/* Visual section animations */
-.visual-section {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-/* Math rendering */
-.katex {
-  font-size: 1.2em !important;
-}
-
-/* Whiteboard effect */
-.whiteboard {
-  background-image: 
-    radial-gradient(circle at 25px 25px, rgba(0,0,0,0.02) 2px, transparent 2px),
-    radial-gradient(circle at 75px 75px, rgba(0,0,0,0.02) 2px, transparent 2px);
-  background-size: 50px 50px;
-}
-
 @custom-variant dark (&:is(.dark *));
 
 :root {
