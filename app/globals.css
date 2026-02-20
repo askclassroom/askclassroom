@@ -130,12 +130,15 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   main {
     @apply mx-auto px-14 flex flex-col gap-8 bg-background h-full max-w-[1400px] pt-10 max-sm:px-2;
   }
+
   h1 {
     @apply text-3xl font-bold;
   }
@@ -145,42 +148,63 @@ body {
   .home-section {
     @apply flex gap-4 justify-between items-start w-full max-lg:flex-col-reverse max-lg:items-center;
   }
+
   .companions-grid {
     @apply flex flex-wrap gap-4 w-full max-md:justify-center;
   }
+
   .companion-card {
     @apply flex flex-col rounded-4xl border border-black px-4 py-4 gap-5 w-full min-lg:max-w-[410px] justify-between;
   }
+
   .subject-badge {
     @apply bg-black text-white rounded-4xl text-sm px-2 py-1 capitalize;
   }
+
   .companion-bookmark {
     @apply px-2 bg-black rounded-4xl flex items-center h-full aspect-square cursor-pointer;
   }
+
+  /* .input {
+    @apply !border-black !bg-white focus-visible: !ring-0 focus-visible: !border-black !w-full;
+  } */
+
   .input {
-    @apply !border-black !bg-white focus-visible:!ring-0 focus-visible:!border-black !w-full;
+    @apply !border-black !bg-white !w-full;
   }
+
+  .input:focus-visible {
+    @apply !ring-0 !border-black;
+  }
+
   .rounded-border {
     @apply rounded-4xl border border-black;
   }
+
   .cta-section {
     @apply bg-cta text-white rounded-4xl px-7 py-10 flex flex-col items-center text-center gap-5 w-1/3 max-lg:w-1/2 max-md:w-full;
   }
+
   .cta-badge {
     @apply bg-cta-gold rounded-4xl px-3 py-1.5 text-black;
   }
+
   .btn-primary {
     @apply bg-primary text-white rounded-xl cursor-pointer px-4 py-2 flex items-center gap-2;
   }
+
   .navbar {
     @apply flex items-center justify-between mx-auto w-full px-14 py-4 bg-white max-sm:px-4;
   }
+
   .btn-signin {
     @apply border border-black rounded-4xl px-4 py-2.5 text-sm font-semibold flex items-center gap-2 cursor-pointer;
   }
+
   .companion-list {
     @apply rounded-4xl border border-black px-7 pt-7 pb-10 max-lg:w-full bg-white;
   }
+
   .companion-limit {
     @apply items-center justify-center flex flex-col gap-4 w-full min-2xl:w-1/2 pt-20 text-center;
   }
@@ -192,6 +216,7 @@ body {
   .companion-avatar {
     @apply size-[300px] flex items-center justify-center rounded-lg max-sm:size-[100px] mt-4;
   }
+
   .companion-lottie {
     @apply size-[300px] max-sm:size-[100px];
   }
@@ -199,6 +224,7 @@ body {
   .user-section {
     @apply flex flex-col gap-4 w-1/3 max-sm:w-full max-sm:flex-row;
   }
+
   .user-avatar {
     @apply border-2 border-black flex flex-col gap-4 items-center rounded-lg py-8 max-sm:hidden;
   }
@@ -210,9 +236,11 @@ body {
   .transcript {
     @apply relative flex flex-col gap-4 w-full items-center pt-10 flex-grow overflow-hidden;
   }
+
   .transcript-message {
     @apply overflow-y-auto w-full flex flex-col gap-4 max-sm:gap-2 pr-2 h-full text-2xl;
   }
+
   .transcript-fade {
     @apply pointer-events-none absolute bottom-0 left-0 right-0 h-40 max-sm:h-20 bg-gradient-to-t from-background via-background/90 to-transparent z-10;
   }
@@ -222,8 +250,251 @@ body {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+}
+
+/* Add this after your existing @layer components */
+@layer components {
+
+  /* Add to your components layer */
+  .completed-sentence {
+    @apply text-gray-600 leading-relaxed;
+  }
+
+  .word-completed {
+    @apply text-gray-500;
+  }
+
+  .live-sentence {
+    @apply mt-2 leading-relaxed;
+  }
+
+  .word-live {
+    @apply text-2xl font-medium text-[#2d2d2d] transition-all duration-300;
+  }
+
+  .word-active {
+    @apply text-black font-bold bg-gradient-to-r from-yellow-100 to-yellow-200 px-1 -mx-1 rounded-lg shadow-sm;
+    animation: gentlePop 0.3s ease;
+  }
+
+  @keyframes gentlePop {
+    0% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.08);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* Make container take available space */
+  .whiteboard-content {
+    @apply p-6 overflow-y-auto min-h-[200px] max-h-none;
+    scroll-behavior: smooth;
+  }
+
+  /* Add a subtle cursor effect when speaking */
+  .whiteboard-content.speaking::after {
+    content: '|';
+    @apply inline-block ml-1 text-2xl font-bold text-gray-400;
+    animation: blink 1s infinite;
+  }
+
+  @keyframes blink {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0;
+    }
+  }
+
+  .spoken-sentence {
+    @apply mb-4 opacity-80;
+  }
+
+  .word-just-spoken {
+    @apply text-gray-600;
+  }
+
+  .current-sentence {
+    @apply mt-2;
+  }
+
+  /* Make active word more prominent */
+  .word-active {
+    @apply text-black scale-110 font-bold bg-yellow-100 px-1 -mx-1 rounded;
+    animation: markerPop 0.3s ease, blink 1s infinite;
+  }
+
+  @keyframes blink {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  /* Add to your components layer */
+  .word-upcoming {
+    @apply opacity-60;
+  }
+
+  /* Active word highlight with better visibility */
+  .word-active {
+    @apply bg-yellow-200/30 rounded px-0.5 -mx-0.5;
+  }
+
+  /* Optional: Add a progress bar for each word */
+  .word-active::before {
+    content: '';
+    @apply absolute -bottom-1 left-0 h-0.5 bg-cta-gold;
+    width: var(--word-progress, 0%);
+    transition: width 0.1s linear;
+  }
+
+  /* Add to your whiteboard-container class */
+  .whiteboard-container {
+    @apply w-full max-w-4xl mx-auto;
+    /* Centers the whiteboard */
+  }
+
+  /* Responsive text sizes */
+  .word-animated {
+    @apply text-xl sm:text-2xl;
+    /* Smaller on mobile */
+  }
+
+  .whiteboard-content {
+    @apply p-4 sm:p-6;
+    /* Smaller padding on mobile */
+  }
+
+  /* Whiteboard Container */
+  .whiteboard-container {
+    @apply bg-[#faf9f6] border-8 border-[#e8e6e1] rounded-lg shadow-lg relative overflow-hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), inset 0 0 30px rgba(0, 0, 0, 0.05);
+  }
+
+  .whiteboard-header {
+    @apply bg-gradient-to-b from-[#e8e6e1] to-[#d4d2c9] px-4 py-2 flex justify-between items-center border-b-2 border-[#c0beb6];
+  }
+
+  .whiteboard-title {
+    @apply font-mono font-bold text-[#2d2d2d];
+  }
+
+  .whiteboard-status {
+    @apply text-sm px-2 py-0.5 bg-[#2d2d2d] text-white rounded-full;
+  }
+
+  .whiteboard-content {
+    @apply p-6 min-h-[150px] max-h-[250px] overflow-y-auto relative;
+  }
+
+  /* Whiteboard texture overlay */
+  .whiteboard-content::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background: repeating-linear-gradient(45deg,
+        transparent,
+        transparent 20px,
+        rgba(200, 200, 200, 0.1) 20px,
+        rgba(200, 200, 200, 0.1) 40px);
+  }
+
+  .words-wrapper {
+    @apply flex flex-wrap gap-2 gap-x-3 leading-8 relative z-10;
+  }
+
+  .word-animated {
+    @apply text-2xl font-medium text-[#2d2d2d] transition-all duration-300 inline-block;
+  }
+
+  .word-active {
+    @apply text-black scale-110 font-bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    animation: markerPop 0.3s ease;
+  }
+
+  .word-active::after {
+    content: '';
+    @apply absolute -bottom-0.5 left-0 right-0 h-0.5 bg-[#ffd700] rounded-sm;
+    animation: underline 0.3s ease;
+  }
+
+  .word-spoken {
+    @apply text-gray-500 opacity-70;
+  }
+
+  .whiteboard-placeholder {
+    @apply text-2xl text-gray-400 text-center italic p-5;
+  }
+
+  .whiteboard-footer {
+    @apply border-t border-dashed border-[#c0beb6] px-4 py-2 text-sm text-gray-500 bg-white/50;
+  }
+
+  /* Scrollbar styling */
+  .whiteboard-content {
+    scrollbar-width: thin;
+    scrollbar-color: #c0beb6 #e8e6e1;
+  }
+
+  .whiteboard-content::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  .whiteboard-content::-webkit-scrollbar-track {
+    @apply bg-[#e8e6e1];
+  }
+
+  .whiteboard-content::-webkit-scrollbar-thumb {
+    @apply bg-[#c0beb6] rounded;
+  }
+
+  .whiteboard-content::-webkit-scrollbar-thumb:hover {
+    @apply bg-[#a09e96];
+  }
+}
+
+/* Keyframe animations */
+@keyframes markerPop {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
+
+  100% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes underline {
+  0% {
+    width: 0;
+  }
+
+  100% {
+    width: 100%;
   }
 }
