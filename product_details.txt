@@ -1,0 +1,40 @@
+# AskClassroom - Product Details
+
+## What is AskClassroom?
+AskClassroom is a modern, interactive AI-powered educational platform built with Next.js. It allows users to engage in real-time voice conversations with AI "Companions" (tutors) specialized in various subjects and topics. The platform aims to simulate a one-on-one tutoring experience through voice interactions and real-time visual feedback.
+
+## How we are working (Architecture & Tech Stack)
+The application is built using a robust, modern web development stack:
+- **Framework:** Next.js 14+ (App Router) with React 19.
+- **Styling & UI:** Tailwind CSS, Radix UI primitives, lucide-react icons, and Framer Motion for sleek animations.
+- **Voice AI Integration:** Powered by `vapi-ai` for low-latency, real-time voice conversations with the AI.
+- **Authentication:** Secured user authentication and management using Clerk (`@clerk/nextjs`).
+- **Database / Backend:** Supabase is utilized for backend data storage and management (sessions, user data).
+- **Form Handling:** `react-hook-form` paired with `zod` for schema validation.
+- **Rich Text & Math:** Integration with `react-markdown` and `katex` for rendering complex mathematical equations and formatted text.
+- **Observability:** Sentry (`@sentry/nextjs`) is integrated for error tracking and performance monitoring.
+
+## Core Features
+
+### 1. AI Voice Companions
+- **Real-time Voice Chat:** Users can use their microphone to speak directly to AI companions and hear responses in real-time.
+- **Subject-Specific Tutors:** Companions are tailored to specific subjects and topics, each with custom visual avatars and colors.
+- **Session History:** Completed sessions are saved and displayed on the dashboard for users to review their journey.
+
+### 2. Interactive Whiteboard Animation
+- **Real-Time Word Sync:** As the AI speaks, words dynamically appear on a "whiteboard" UI.
+- **Live vs. Completed Sentences:** The UI differentiates between the currently spoken sentence (live words) and previously completed sentences.
+- **Audio Visualizers:** Lottie-based soundwave animations give visual feedback when the AI is speaking.
+
+### 3. Live Transcript
+- In addition to the whiteboard, a classic chat transcript is maintained during the call, distinguishing between user and assistant messages for easy reading.
+
+### 4. Companion Discovery & filtering
+- **Search & Filter:** Users can search for specific companions or filter them by subject using dedicated UI components (`SearchInput.tsx`, `SubjectFilter.tsx`).
+- **Recent Sessions:** Quick access to recently interacted companions on the home page.
+
+### 5. Monetization & Access
+- **Subscription Model:** The platform includes a dedicated subscription flow/route, likely for premium AI features or unlimited usage times.
+
+### 6. User Journey Tracking
+- A dedicated "My Journey" section allows users to track their learning progress and past interactions.
