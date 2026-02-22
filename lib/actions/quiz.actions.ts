@@ -222,7 +222,47 @@ export const submitQuizAnswers = async (
 /**
  * Get quiz results with answers
  */
+// export const getQuizResults = async (quizId: string): Promise<QuizResult | null> => {
+//     const supabase = createSupabaseClient();
+
+//     // Get quiz
+//     const { data: quiz, error: quizError } = await supabase
+//         .from('quizzes')
+//         .select('*')
+//         .eq('id', quizId)
+//         .single();
+
+//     if (quizError) {
+//         console.error('❌ Error fetching quiz:', quizError);
+//         throw new Error(quizError.message);
+//     }
+
+//     // Get answers
+//     const { data: answers, error: answersError } = await supabase
+//         .from('quiz_answers')
+//         .select('*')
+//         .eq('quiz_id', quizId)
+//         .order('question_index', { ascending: true });
+
+//     if (answersError) {
+//         console.error('❌ Error fetching answers:', answersError);
+//         throw new Error(answersError.message);
+//     }
+
+//     return {
+//         quiz,
+//         answers: answers || [],
+//         score: quiz.score || 0,
+//         passed: quiz.passed || false
+//     };
+// };
+
+/**
+ * Get quiz results with answers
+ */
 export const getQuizResults = async (quizId: string): Promise<QuizResult | null> => {
+    console.log('🔍 Fetching quiz results for:', quizId);
+
     const supabase = createSupabaseClient();
 
     // Get quiz
@@ -249,6 +289,12 @@ export const getQuizResults = async (quizId: string): Promise<QuizResult | null>
         throw new Error(answersError.message);
     }
 
+    console.log('✅ Quiz results fetched:', {
+        quizId,
+        answersCount: answers?.length,
+        score: quiz.score
+    });
+
     return {
         quiz,
         answers: answers || [],
@@ -256,7 +302,6 @@ export const getQuizResults = async (quizId: string): Promise<QuizResult | null>
         passed: quiz.passed || false
     };
 };
-
 /**
  * Get all quizzes for a user
  */
