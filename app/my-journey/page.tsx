@@ -15,9 +15,13 @@ import {
 import Image from "next/image";
 import CompanionsList from "@/components/CompanionsList";
 import { SessionsList } from "@/components/SessionsList";
+import { getUserQuizzes } from '@/lib/actions/quiz.actions';
+import { QuizzesList } from '@/components/QuizzesList';
+
 
 const Profile = async () => {
   const user = await currentUser();
+  const userQuizzes = await getUserQuizzes(user.id, 10);
 
   if (!user) redirect("/sign-in");
 
@@ -101,6 +105,14 @@ const Profile = async () => {
           </AccordionTrigger>
           <AccordionContent>
             <CompanionsList title="My Companions" companions={companions} />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="quizzes">
+          <AccordionTrigger className="text-2xl font-bold">
+            My Quiz Results {`(${userQuizzes.length})`}
+          </AccordionTrigger>
+          <AccordionContent>
+            <QuizzesList quizzes={userQuizzes} />
           </AccordionContent>
         </AccordionItem>
       </Accordion>

@@ -183,6 +183,9 @@ import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import soundwaves from '@/constants/soundwaves.json'
 import { addToSessionHistory, saveSessionTranscript } from "@/lib/actions/companion.actions";
 import { CompanionComponentProps } from '@/types';
+// Add these imports
+import { QuizModal } from './QuizModal';
+import { generateQuizFromTranscript, saveQuiz, getQuizBySessionId } from '@/lib/actions/quiz.actions';
 
 enum CallStatus {
     INACTIVE = 'INACTIVE',
@@ -203,6 +206,10 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     const [isMuted, setIsMuted] = useState(false);
     const [messages, setMessages] = useState<SavedMessage[]>([]);
     const currentSessionIdRef = useRef<string | null>(null);
+    // Add these states
+    const [showQuizModal, setShowQuizModal] = useState(false);
+    const [generatedQuiz, setGeneratedQuiz] = useState<any>(null);
+    const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
 
     // Whiteboard animation states
     const [liveWords, setLiveWords] = useState<DisplayWord[]>([]);
@@ -320,11 +327,51 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             lastProcessedRef.current = '';
         };
 
+        // const onCallEnd = async () => {
+        //     setCallStatus(CallStatus.FINISHED);
+        //     // addToSessionHistory(companionId);
+        //     await saveTranscript();
+        //     // console.log('Transcript saved successfully');
+        // };
+
         const onCallEnd = async () => {
+            console.log('🔴 Call ended - saving transcript...');
             setCallStatus(CallStatus.FINISHED);
-            // addToSessionHistory(companionId);
-            await saveTranscript();
-            // console.log('Transcript saved successfully');
+
+            if (currentSessionIdRef.current && messagesRef.current.length > 0) {
+                await saveTranscript();
+
+                // Check if quiz already exists for this session
+                const existingQuiz = await getQuizBySessionId(currentSessionIdRef.current);
+
+                if (!existingQuiz) {
+                    // Generate quiz automatically
+                    setIsGeneratingQuiz(true);
+                    try {
+                        const questions = await generateQuizFromTranscript(
+                            messagesRef.current,
+                            name,
+                            subject,
+                            topic
+                        );
+
+                        const quizId = await saveQuiz(currentSessionIdRef.current, questions);
+                        setGeneratedQuiz({
+                            id: quizId,
+                            questions
+                        });
+
+                        // Show quiz modal after a short delay
+                        setTimeout(() => {
+                            setShowQuizModal(true);
+                            setIsGeneratingQuiz(false);
+                        }, 1000);
+                    } catch (error) {
+                        console.error('Failed to generate quiz:', error);
+                        setIsGeneratingQuiz(false);
+                    }
+                }
+            }
         };
 
         // const onMessage = (message: Message) => {
@@ -555,6 +602,27 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                 </div>
                 <div className="transcript-fade" />
             </section>
+            {/* Quiz Modal */}
+            {showQuizModal && generatedQuiz && (
+                <QuizModal
+                    isOpen={showQuizModal}
+                    onClose={() => setShowQuizModal(false)}
+                    quizId={generatedQuiz.id}
+                    questions={generatedQuiz.questions}
+                    companionName={name}
+                    subject={subject}
+                />
+            )}
+
+            {/* Loading indicator for quiz generation */}
+            {isGeneratingQuiz && (
+                <div className="fixed bottom-4 right-4 bg-white border border-black rounded-lg p-4 shadow-lg">
+                    <div className="flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                        <p>Generating quiz from your session...</p>
+                    </div>
+                </div>
+            )}
         </section>
     );
 };
