@@ -338,11 +338,13 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             console.log('🔴 Call ended - saving transcript...');
             setCallStatus(CallStatus.FINISHED);
 
-            if (currentSessionIdRef.current && messagesRef.current.length > 0) {
+            const sessionId = currentSessionIdRef.current;
+
+            if (sessionId && messagesRef.current.length > 0) {
                 await saveTranscript();
 
                 // Check if quiz already exists for this session
-                const existingQuiz = await getQuizBySessionId(currentSessionIdRef.current);
+                const existingQuiz = await getQuizBySessionId(sessionId);
 
                 if (!existingQuiz) {
                     // Generate quiz automatically
@@ -355,7 +357,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                             topic
                         );
 
-                        const quizId = await saveQuiz(currentSessionIdRef.current, questions);
+                        const quizId = await saveQuiz(sessionId, questions);
                         setGeneratedQuiz({
                             id: quizId,
                             questions

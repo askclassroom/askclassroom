@@ -69,9 +69,9 @@ Ensure the JSON is valid and properly formatted. Do not include any other text.
                     content: prompt
                 }
             ],
-            model: "mixtral-8x7b-32768",
+            model: "llama-3.1-8b-instant",
             temperature: 0.7,
-            max_tokens: 2048,
+            max_tokens: 20480,
         });
 
         const response = completion.choices[0]?.message?.content;
