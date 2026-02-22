@@ -181,7 +181,8 @@ import { vapi } from "@/lib/vapi.sdk";
 import Image from "next/image";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import soundwaves from '@/constants/soundwaves.json'
-import { addToSessionHistory } from "@/lib/actions/companion.actions";
+import { addToSessionHistory, saveSessionTranscript } from "@/lib/actions/companion.actions";
+import { CompanionComponentProps } from '@/types';
 
 enum CallStatus {
     INACTIVE = 'INACTIVE',
@@ -201,6 +202,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [messages, setMessages] = useState<SavedMessage[]>([]);
+    const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
     // Whiteboard animation states
     const [liveWords, setLiveWords] = useState<DisplayWord[]>([]);
@@ -210,6 +212,12 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     const lottieRef = useRef<LottieRefCurrentProps>(null);
     const wordsContainerRef = useRef<HTMLDivElement>(null);
     const lastProcessedRef = useRef<string>('');
+    const messagesRef = useRef<SavedMessage[]>([]);
+
+    // Update ref when messages change
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages]);
 
     // Lottie animation effect
     useEffect(() => {
@@ -266,9 +274,43 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
         setMessages((prev) => [newMessage, ...prev]);
     };
 
+    // Save transcript to database
+    const saveTranscript = async () => {
+        console.log('Saving transcript...');
+        if (currentSessionId && messagesRef.current.length > 0) {
+            try {
+                // Reverse messages to get chronological order (oldest first)
+                const chronologicalMessages = [...messagesRef.current].reverse();
+                await saveSessionTranscript(currentSessionId, chronologicalMessages);
+                console.log('Transcript saved successfully');
+            } catch (error) {
+                console.error('Failed to save transcript:', error);
+            }
+        }
+    };
+
     useEffect(() => {
-        const onCallStart = () => {
+        // const onCallStart = () => {
+        //     setCallStatus(CallStatus.ACTIVE);
+        //     // Reset all states
+        //     setLiveWords([]);
+        //     setCompletedSentences([]);
+        //     setMessages([]);
+        //     lastProcessedRef.current = '';
+        // };
+
+        const onCallStart = async () => {
             setCallStatus(CallStatus.ACTIVE);
+
+            // Create a new session history entry
+            try {
+                const sessionId = await addToSessionHistory(companionId);
+                setCurrentSessionId(sessionId);
+                console.log('Session created:', sessionId);
+            } catch (error) {
+                console.error('Failed to create session:', error);
+            }
+
             // Reset all states
             setLiveWords([]);
             setCompletedSentences([]);
@@ -276,11 +318,36 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             lastProcessedRef.current = '';
         };
 
-        const onCallEnd = () => {
+        const onCallEnd = async () => {
             setCallStatus(CallStatus.FINISHED);
-            addToSessionHistory(companionId);
+            // addToSessionHistory(companionId);
+            await saveTranscript();
+            // console.log('Transcript saved successfully');
         };
 
+        // const onMessage = (message: Message) => {
+        //     console.log('VAPI Message:', JSON.stringify(message, null, 2));
+
+        //     if (message.type === 'transcript') {
+        //         // Handle assistant messages
+        //         if (message.role === 'assistant') {
+        //             if (message.transcriptType === 'partial') {
+        //                 // Real-time animation during speech
+        //                 processPartialTranscript(message.transcript);
+        //                 setIsSpeaking(true);
+        //             }
+        //             else if (message.transcriptType === 'final') {
+        //                 // Sentence complete
+        //                 processFinalTranscript(message.transcript);
+        //             }
+        //         }
+        //         // Handle user messages
+        //         else if (message.role === 'user' && message.transcriptType === 'final') {
+        //             const newMessage = { role: 'user' as const, content: message.transcript };
+        //             setMessages((prev) => [newMessage, ...prev]);
+        //         }
+        //     }
+        // };
         const onMessage = (message: Message) => {
             console.log('VAPI Message:', JSON.stringify(message, null, 2));
 
@@ -299,7 +366,11 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                 }
                 // Handle user messages
                 else if (message.role === 'user' && message.transcriptType === 'final') {
-                    const newMessage = { role: 'user' as const, content: message.transcript };
+                    const newMessage = {
+                        role: 'user' as const,
+                        content: message.transcript,
+                        timestamp: new Date().toISOString()
+                    };
                     setMessages((prev) => [newMessage, ...prev]);
                 }
             }
