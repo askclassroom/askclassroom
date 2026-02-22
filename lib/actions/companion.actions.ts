@@ -194,7 +194,7 @@ export const saveSessionTranscript = async (sessionId: string, transcript: Saved
         .from('session_history')
         .update({
             transcript: transcript,
-            updated_at: new Date().toISOString()
+            // updated_at: new Date().toISOString()
         })
         .eq('id', sessionId)
         .select();

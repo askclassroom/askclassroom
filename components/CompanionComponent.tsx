@@ -202,7 +202,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [messages, setMessages] = useState<SavedMessage[]>([]);
-    const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+    const currentSessionIdRef = useRef<string | null>(null);
 
     // Whiteboard animation states
     const [liveWords, setLiveWords] = useState<DisplayWord[]>([]);
@@ -274,17 +274,19 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
         setMessages((prev) => [newMessage, ...prev]);
     };
 
-    // Save transcript to database
     const saveTranscript = async () => {
-        console.log('Saving transcript...');
-        if (currentSessionId && messagesRef.current.length > 0) {
+        const sessionId = currentSessionIdRef.current;
+        console.log('Saving transcript...', sessionId, messagesRef.current.length);
+        if (sessionId && messagesRef.current.length > 0) {
+            currentSessionIdRef.current = null; // Prevent duplicate saves when unmounting
             try {
                 // Reverse messages to get chronological order (oldest first)
                 const chronologicalMessages = [...messagesRef.current].reverse();
-                await saveSessionTranscript(currentSessionId, chronologicalMessages);
+                await saveSessionTranscript(sessionId, chronologicalMessages);
                 console.log('Transcript saved successfully');
             } catch (error) {
                 console.error('Failed to save transcript:', error);
+                currentSessionIdRef.current = sessionId; // Restore if failed
             }
         }
     };
@@ -305,7 +307,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             // Create a new session history entry
             try {
                 const sessionId = await addToSessionHistory(companionId);
-                setCurrentSessionId(sessionId);
+                currentSessionIdRef.current = sessionId;
                 console.log('Session created:', sessionId);
             } catch (error) {
                 console.error('Failed to create session:', error);
@@ -394,6 +396,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
         vapi.on('speech-end', onSpeechEnd);
 
         return () => {
+            saveTranscript(); // Attempt to save if the user navigates away
             vapi.off('call-start', onCallStart);
             vapi.off('call-end', onCallEnd);
             vapi.off('message', onMessage);
