@@ -23,6 +23,8 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.34.0",
     "groq-sdk": "^0.37.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.0",
     "katex": "^0.16.28",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.563.0",

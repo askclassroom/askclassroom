@@ -294,7 +294,7 @@ export const getSessionTranscript = async (sessionId: string) => {
 
     const { data, error } = await supabase
         .from('session_history')
-        .select('transcript, transcript_summary, companions(*)')
+        .select('created_at, transcript, transcript_summary, companions(*)')
         .eq('id', sessionId)
         .single();
 

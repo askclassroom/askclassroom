@@ -68,7 +68,7 @@ export const SessionsList = ({ sessions }: SessionsListProps) => {
 
                     {selectedSession === session.id && (
                         <div className="border-t border-black p-4 bg-gray-50">
-                            <SessionTranscript sessionId={session.id} />
+                            <SessionTranscript sessionId={session.id} createdAt={session.created_at} />
                         </div>
                     )}
                 </div>
