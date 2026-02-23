@@ -181,7 +181,7 @@ import { vapi } from "@/lib/vapi.sdk";
 import Image from "next/image";
 import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import soundwaves from '@/constants/soundwaves.json'
-import { addToSessionHistory, saveSessionTranscript } from "@/lib/actions/companion.actions";
+import { addToSessionHistory, saveSessionTranscript, generateAndSaveTranscriptSummary } from "@/lib/actions/companion.actions";
 import { CompanionComponentProps } from '@/types';
 // Add these imports
 import { QuizModal } from './QuizModal';
@@ -342,6 +342,13 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
 
             if (sessionId && messagesRef.current.length > 0) {
                 await saveTranscript();
+
+                // Generate and save transcript summary silently
+                try {
+                    await generateAndSaveTranscriptSummary(sessionId, messagesRef.current, name);
+                } catch (error) {
+                    console.error('Failed to generate summary:', error);
+                }
 
                 // Check if quiz already exists for this session
                 const existingQuiz = await getQuizBySessionId(sessionId);

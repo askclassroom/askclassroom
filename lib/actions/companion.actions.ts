@@ -4,6 +4,11 @@ import { auth } from "@clerk/nextjs/server";
 import { createSupabaseClient } from "../supabase";
 import { revalidatePath } from "next/cache";
 import { GetAllCompanions, CreateCompanion, SavedMessage } from "@/types";
+import Groq from "groq-sdk";
+
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY,
+});
 
 export const getAllCompanions = async ({ limit = 10, page = 1, subject, topic }: GetAllCompanions) => {
     const supabase = createSupabaseClient();
@@ -289,7 +294,7 @@ export const getSessionTranscript = async (sessionId: string) => {
 
     const { data, error } = await supabase
         .from('session_history')
-        .select('transcript, companions(*)')
+        .select('transcript, transcript_summary, companions(*)')
         .eq('id', sessionId)
         .single();
 
@@ -314,6 +319,7 @@ export const getUserSessionsWithTranscripts = async (userId: string, limit = 10)
       id,
       created_at,
       transcript,
+      transcript_summary,
       companions:companion_id (*)
     `)
         .eq('user_id', userId)
@@ -326,4 +332,68 @@ export const getUserSessionsWithTranscripts = async (userId: string, limit = 10)
     }
 
     return data;
+};
+
+export const generateAndSaveTranscriptSummary = async (
+    sessionId: string,
+    transcript: SavedMessage[],
+    companionName: string
+) => {
+    console.log('📝 Generating transcript summary...');
+
+    const conversationText = transcript
+        .map(msg => `${msg.role === 'assistant' ? companionName : 'Student'}: ${msg.content}`)
+        .join('\n');
+
+    const prompt = `
+You are an expert educator summarizing a tutoring session.
+
+Tutor: ${companionName}
+
+Here is the transcript of the tutoring session:
+${conversationText}
+
+Based on this session, provide a concise summary of what the student has learned. Focus on the key concepts explained by the tutor. Keep the summary under 3 sentences. Do not use any introductory phrases, just provide the summary text directly.
+`;
+
+    try {
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an expert educational summarizer. Provide clear, concise summaries."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            model: "llama-3.1-8b-instant",
+            temperature: 0.5,
+            max_tokens: 500,
+        });
+
+        const summaryResponse = completion.choices[0]?.message?.content;
+        if (!summaryResponse) throw new Error('No response from Groq');
+
+        const summary = summaryResponse.trim();
+
+        // Save to Supabase
+        const supabase = createSupabaseClient();
+        const { error } = await supabase
+            .from('session_history')
+            .update({ transcript_summary: summary })
+            .eq('id', sessionId);
+
+        if (error) {
+            console.error('Error saving transcript summary:', error);
+            throw new Error(error.message);
+        }
+
+        console.log('✅ Transcript summary generated and saved');
+        return summary;
+    } catch (error) {
+        console.error('❌ Error generating transcript summary:', error);
+        throw error;
+    }
 };

@@ -36,7 +36,7 @@ export const SessionTranscript = ({ sessionId }: SessionTranscriptProps) => {
         return <div className="p-4 text-center">Transcript not found</div>;
     }
 
-    const { transcript, companions } = session;
+    const { transcript, transcript_summary, companions } = session;
     const companionName = companions?.name || 'AI Tutor';
 
     return (
@@ -57,30 +57,15 @@ export const SessionTranscript = ({ sessionId }: SessionTranscriptProps) => {
             </div>
 
             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-                {transcript && transcript.length > 0 ? (
-                    transcript.map((message: any, index: number) => (
-                        <div
-                            key={index}
-                            className={cn(
-                                'p-3 rounded-lg',
-                                message.role === 'assistant'
-                                    ? 'bg-gray-100 ml-4'
-                                    : 'bg-primary/10 mr-4'
-                            )}
-                        >
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="font-semibold text-sm">
-                                    {message.role === 'assistant' ? companionName : 'You'}
-                                </span>
-                                {message.timestamp && (
-                                    <span className="text-xs text-gray-500">
-                                        {new Date(message.timestamp).toLocaleTimeString()}
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-gray-800">{message.content}</p>
-                        </div>
-                    ))
+                {transcript_summary ? (
+                    <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                        <h4 className="font-bold text-lg mb-2 text-primary">Session AI Summary</h4>
+                        <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">{transcript_summary}</p>
+                    </div>
+                ) : transcript && transcript.length > 0 ? (
+                    <div className="p-4 text-center text-gray-500">
+                        <p className="mb-2">Summary is currently being generated...</p>
+                    </div>
                 ) : (
                     <p className="text-center text-gray-500">No messages in this session</p>
                 )}
