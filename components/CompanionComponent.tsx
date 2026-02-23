@@ -186,6 +186,7 @@ import { CompanionComponentProps } from '@/types';
 // Add these imports
 import { QuizModal } from './QuizModal';
 import { generateQuizFromTranscript, saveQuiz, getQuizBySessionId } from '@/lib/actions/quiz.actions';
+import { completeLearningSession } from '@/lib/actions/dashboard.actions';
 
 enum CallStatus {
     INACTIVE = 'INACTIVE',
@@ -220,6 +221,9 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     const wordsContainerRef = useRef<HTMLDivElement>(null);
     const lastProcessedRef = useRef<string>('');
     const messagesRef = useRef<SavedMessage[]>([]);
+
+    // Add state for session timing
+    const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
 
     // Update ref when messages change
     useEffect(() => {
@@ -310,7 +314,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
 
         const onCallStart = async () => {
             setCallStatus(CallStatus.ACTIVE);
-
+            setSessionStartTime(new Date());
             // Create a new session history entry
             try {
                 const sessionId = await addToSessionHistory(companionId);
@@ -339,7 +343,19 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             setCallStatus(CallStatus.FINISHED);
 
             const sessionId = currentSessionIdRef.current;
+            // Record session with duration
+            if (sessionStartTime) {
+                const endedAt = new Date();
+                const durationSeconds = Math.round((endedAt.getTime() - sessionStartTime.getTime()) / 1000);
 
+                // Save the session with duration
+                completeLearningSession(companionId, subject, topic, durationSeconds);
+            }
+
+            // Also add to session history for backward compatibility
+            addToSessionHistory(companionId);
+
+            setSessionStartTime(null);
             if (sessionId && messagesRef.current.length > 0) {
                 await saveTranscript();
 
