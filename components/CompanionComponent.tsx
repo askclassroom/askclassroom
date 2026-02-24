@@ -257,15 +257,32 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     }, [liveWords]);
 
     // Process partial transcript (real-time animation)
+    // const processPartialTranscript = (transcript: string) => {
+    //     if (!transcript || transcript === lastProcessedRef.current) return;
+
+    //     const words = transcript.split(' ');
+
+    //     // Create display words with unique IDs
+    //     const newLiveWords: DisplayWord[] = words.map((word, index) => ({
+    //         text: word,
+    //         id: `live-${Date.now()}-${index}`,
+    //         isActive: index === words.length - 1 // Last word is active
+    //     }));
+
+    //     setLiveWords(newLiveWords);
+    //     lastProcessedRef.current = transcript;
+    // };
+
+    // Process partial transcript (real-time animation)
     const processPartialTranscript = (transcript: string) => {
         if (!transcript || transcript === lastProcessedRef.current) return;
 
         const words = transcript.split(' ');
 
-        // Create display words with unique IDs
+        // Create display words with better active word detection
         const newLiveWords: DisplayWord[] = words.map((word, index) => ({
             text: word,
-            id: `live-${Date.now()}-${index}`,
+            id: `live-${Date.now()}-${index}-${Math.random()}`,
             isActive: index === words.length - 1 // Last word is active
         }));
 
@@ -613,8 +630,10 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             </section>
 
             {/* Whiteboard Animation Section */}
+            {/* Whiteboard Animation Section */}
+            {/* Whiteboard Animation Section - SIMPLIFIED */}
             <section className="mt-8 flex-1 flex flex-col min-h-0">
-                <div className="whiteboard-container flex flex-col h-full">
+                <div className="whiteboard-container">
                     <div className="whiteboard-header">
                         <span className="whiteboard-title">{name} is explaining:</span>
                         <span className="whiteboard-status">
@@ -622,32 +641,44 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                         </span>
                     </div>
 
-                    <div className="whiteboard-content flex-1 overflow-y-auto" ref={wordsContainerRef}>
+                    <div className="whiteboard-content" ref={wordsContainerRef}>
                         {/* Completed sentences */}
-                        {completedSentences.map((sentence, sentenceIndex) => (
-                            <div key={`completed-${sentenceIndex}`} className="completed-sentence mb-4">
-                                {sentence.split(' ').map((word, wordIndex) => (
-                                    <span key={`${sentenceIndex}-${wordIndex}`} className="word-completed">
-                                        {word}{' '}
-                                    </span>
+                        {completedSentences.length > 0 && (
+                            <div className="words-wrapper">
+                                {completedSentences.map((sentence, sentenceIndex) => (
+                                    <div key={`completed-${sentenceIndex}`} className="completed-sentence">
+                                        {sentence.split(' ').map((word, wordIndex) => (
+                                            <span key={`${sentenceIndex}-${wordIndex}`} className="word-completed">
+                                                {word}{' '}
+                                            </span>
+                                        ))}
+                                    </div>
                                 ))}
                             </div>
-                        ))}
+                        )}
 
                         {/* Live words being spoken */}
                         {liveWords.length > 0 && (
-                            <div className="live-sentence">
-                                {liveWords.map((word, index) => (
-                                    <span
-                                        key={word.id}
-                                        className={cn(
-                                            'word-live',
-                                            word.isActive && 'word-active'
-                                        )}
-                                    >
-                                        {word.text}{' '}
-                                    </span>
-                                ))}
+                            <div className="words-wrapper live-sentence">
+                                {liveWords.map((word, index) => {
+                                    // Determine word state
+                                    let wordClass = 'word-live';
+                                    if (word.isActive) {
+                                        wordClass = 'word-active';
+                                    } else if (index < liveWords.length - 1) {
+                                        wordClass = 'word-spoken';
+                                    } else {
+                                        wordClass = 'word-upcoming';
+                                    }
+
+                                    return (
+                                        <span key={word.id} className={wordClass}>
+                                            {word.text}{' '}
+                                        </span>
+                                    );
+                                })}
+                                {/* Add blinking cursor when speaking */}
+                                {isSpeaking && <span className="speaking-cursor"></span>}
                             </div>
                         )}
 
@@ -655,8 +686,8 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                         {completedSentences.length === 0 && liveWords.length === 0 && (
                             <div className="whiteboard-placeholder">
                                 {callStatus === CallStatus.ACTIVE
-                                    ? 'Waiting for AI response...'
-                                    : 'Start a session to begin'}
+                                    ? '✨ Waiting for AI response...'
+                                    : '🎓 Click "Start Session" to begin'}
                             </div>
                         )}
                     </div>

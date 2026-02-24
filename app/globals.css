@@ -258,234 +258,198 @@ body {
 }
 
 /* Add this after your existing @layer components */
+/* Replace all your whiteboard-related CSS with this single, clean version */
+
+/* Replace ALL your whiteboard CSS with this */
+
 @layer components {
 
-  /* Add to your components layer */
-  .completed-sentence {
-    @apply text-gray-600 leading-relaxed;
-  }
-
-  .word-completed {
-    @apply text-gray-500;
-  }
-
-  .live-sentence {
-    @apply mt-2 leading-relaxed;
-  }
-
-  .word-live {
-    @apply text-2xl font-medium text-[#2d2d2d] transition-all duration-300;
-  }
-
-  .word-active {
-    @apply text-black font-bold bg-gradient-to-r from-yellow-100 to-yellow-200 px-1 -mx-1 rounded-lg shadow-sm;
-    animation: gentlePop 0.3s ease;
-  }
-
-  @keyframes gentlePop {
-    0% {
-      transform: scale(1);
-    }
-
-    50% {
-      transform: scale(1.08);
-    }
-
-    100% {
-      transform: scale(1);
-    }
-  }
-
-  /* Make container take available space */
-  .whiteboard-content {
-    @apply p-6 overflow-y-auto min-h-[200px] max-h-none;
-    scroll-behavior: smooth;
-  }
-
-  /* Add a subtle cursor effect when speaking */
-  .whiteboard-content.speaking::after {
-    content: '|';
-    @apply inline-block ml-1 text-2xl font-bold text-gray-400;
-    animation: blink 1s infinite;
-  }
-
-  @keyframes blink {
-
-    0%,
-    100% {
-      opacity: 1;
-    }
-
-    50% {
-      opacity: 0;
-    }
-  }
-
-  .spoken-sentence {
-    @apply mb-4 opacity-80;
-  }
-
-  .word-just-spoken {
-    @apply text-gray-600;
-  }
-
-  .current-sentence {
-    @apply mt-2;
-  }
-
-  /* Make active word more prominent */
-  .word-active {
-    @apply text-black scale-110 font-bold bg-yellow-100 px-1 -mx-1 rounded;
-    animation: markerPop 0.3s ease, blink 1s infinite;
-  }
-
-  @keyframes blink {
-
-    0%,
-    100% {
-      opacity: 1;
-    }
-
-    50% {
-      opacity: 0.8;
-    }
-  }
-
-  /* Add to your components layer */
-  .word-upcoming {
-    @apply opacity-60;
-  }
-
-  /* Active word highlight with better visibility */
-  .word-active {
-    @apply bg-yellow-200/30 rounded px-0.5 -mx-0.5;
-  }
-
-  /* Optional: Add a progress bar for each word */
-  .word-active::before {
-    content: '';
-    @apply absolute -bottom-1 left-0 h-0.5 bg-cta-gold;
-    width: var(--word-progress, 0%);
-    transition: width 0.1s linear;
-  }
-
-  /* Add to your whiteboard-container class */
+  /* Main container - visible border */
   .whiteboard-container {
-    @apply w-full max-w-4xl mx-auto;
-    /* Centers the whiteboard */
+    background-color: #faf9f6;
+    border: 8px solid #d4d2c9;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 300px;
   }
 
-  /* Responsive text sizes */
-  .word-animated {
-    @apply text-xl sm:text-2xl;
-    /* Smaller on mobile */
-  }
-
-  .whiteboard-content {
-    @apply p-4 sm:p-6;
-    /* Smaller padding on mobile */
-  }
-
-  /* Whiteboard Container */
-  .whiteboard-container {
-    @apply bg-[#faf9f6] border-8 border-[#e8e6e1] rounded-lg shadow-lg relative overflow-hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), inset 0 0 30px rgba(0, 0, 0, 0.05);
-  }
-
+  /* Header - clearly visible */
   .whiteboard-header {
-    @apply bg-gradient-to-b from-[#e8e6e1] to-[#d4d2c9] px-4 py-2 flex justify-between items-center border-b-2 border-[#c0beb6];
+    background: linear-gradient(to bottom, #e8e6e1, #d4d2c9);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #b8b6ae;
   }
 
   .whiteboard-title {
-    @apply font-mono font-bold text-[#2d2d2d];
+    font-family: monospace;
+    font-weight: bold;
+    color: #1a1a1a;
+    font-size: 1.1rem;
   }
 
   .whiteboard-status {
-    @apply text-sm px-2 py-0.5 bg-[#2d2d2d] text-white rounded-full;
+    font-size: 0.9rem;
+    padding: 4px 12px;
+    background-color: #2d2d2d;
+    color: white;
+    border-radius: 9999px;
   }
 
+  /* Content area - scrollable */
   .whiteboard-content {
-    @apply p-6 min-h-[150px] max-h-[250px] overflow-y-auto relative;
+    padding: 24px;
+    min-height: 250px;
+    max-height: 350px;
+    overflow-y: auto;
+    background-color: #faf9f6;
+    position: relative;
   }
 
-  /* Whiteboard texture overlay */
+  /* Subtle texture overlay */
   .whiteboard-content::before {
     content: '';
-    @apply absolute inset-0 pointer-events-none;
-    background: repeating-linear-gradient(45deg,
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: repeating-linear-gradient(45deg,
         transparent,
         transparent 20px,
         rgba(200, 200, 200, 0.1) 20px,
         rgba(200, 200, 200, 0.1) 40px);
+    pointer-events: none;
+    z-index: 1;
   }
 
+  /* Words container */
   .words-wrapper {
-    @apply flex flex-wrap gap-2 gap-x-3 leading-8 relative z-10;
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    line-height: 1.8;
   }
 
-  .word-animated {
-    @apply text-2xl font-medium text-[#2d2d2d] transition-all duration-300 inline-block;
+  /* Completed sentences */
+  .completed-sentence {
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 10;
   }
 
+  .word-completed {
+    font-size: 1.5rem;
+    color: #6b7280;
+    display: inline-block;
+    margin-right: 4px;
+  }
+
+  /* Live words */
+  .live-sentence {
+    margin-top: 8px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .word-live {
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: #1f2937;
+    display: inline-block;
+    margin-right: 4px;
+    transition: all 0.2s ease;
+  }
+
+  /* Active word - currently being spoken */
   .word-active {
-    @apply text-black scale-110 font-bold;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-    animation: markerPop 0.3s ease;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #000000;
+    background: linear-gradient(to right, #fef9c3, #fef08a);
+    padding: 2px 6px;
+    margin: -2px -2px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: scale(1.05);
+    animation: gentlePop 0.3s ease;
+    display: inline-block;
+    position: relative;
   }
 
   .word-active::after {
     content: '';
-    @apply absolute -bottom-0.5 left-0 right-0 h-0.5 bg-[#ffd700] rounded-sm;
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #fbbf24;
+    border-radius: 2px;
     animation: underline 0.3s ease;
   }
 
+  /* Spoken words */
   .word-spoken {
-    @apply text-gray-500 opacity-70;
+    font-size: 1.5rem;
+    color: #9ca3af;
+    opacity: 0.7;
   }
 
+  /* Upcoming words */
+  .word-upcoming {
+    font-size: 1.8rem;
+    color: #4b5563;
+    opacity: 0.8;
+  }
+
+  /* Placeholder */
   .whiteboard-placeholder {
-    @apply text-2xl text-gray-400 text-center italic p-5;
+    font-size: 1.8rem;
+    color: #9ca3af;
+    text-align: center;
+    font-style: italic;
+    padding: 40px 20px;
+    position: relative;
+    z-index: 10;
   }
 
-  .whiteboard-footer {
-    @apply border-t border-dashed border-[#c0beb6] px-4 py-2 text-sm text-gray-500 bg-white/50;
-  }
-
-  /* Scrollbar styling */
-  .whiteboard-content {
-    scrollbar-width: thin;
-    scrollbar-color: #c0beb6 #e8e6e1;
-  }
-
-  .whiteboard-content::-webkit-scrollbar {
-    @apply w-2;
-  }
-
-  .whiteboard-content::-webkit-scrollbar-track {
-    @apply bg-[#e8e6e1];
-  }
-
-  .whiteboard-content::-webkit-scrollbar-thumb {
-    @apply bg-[#c0beb6] rounded;
-  }
-
-  .whiteboard-content::-webkit-scrollbar-thumb:hover {
-    @apply bg-[#a09e96];
+  /* Blinking cursor */
+  .speaking-cursor {
+    display: inline-block;
+    width: 3px;
+    height: 2rem;
+    background-color: #374151;
+    margin-left: 4px;
+    vertical-align: middle;
+    animation: blink 1s infinite;
+    position: relative;
+    z-index: 10;
   }
 }
 
-/* Keyframe animations */
-@keyframes markerPop {
+/* Animations */
+@keyframes gentlePop {
   0% {
     transform: scale(1);
   }
 
   50% {
-    transform: scale(1.15);
+    transform: scale(1.08);
   }
 
   100% {
-    transform: scale(1.1);
+    transform: scale(1.05);
   }
 }
 
@@ -496,5 +460,17 @@ body {
 
   100% {
     width: 100%;
+  }
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
   }
 }
