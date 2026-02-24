@@ -122,11 +122,11 @@ export const newCompanionPermissions = async () => {
 
     if (has({ plan: 'pro' })) {
         // return true;
-        limit = 4;
+        limit = 15;
     } else if (has({ feature: "3_companion_limit" })) {
-        limit = 3;
+        limit = 15;
     } else if (has({ feature: "10_companion_limit" })) {
-        limit = 10;
+        limit = 15;
     }
 
     const { data, error } = await supabase
@@ -395,5 +395,59 @@ Based on this session, provide a concise summary of what the student has learned
     } catch (error) {
         console.error('❌ Error generating transcript summary:', error);
         throw error;
+    }
+};
+
+/**
+ * Generate highly visual image keywords for Unsplash based on companion profile
+ */
+export const generateImageKeywords = async (companionName: string, subject: string, topic: string) => {
+    console.log(`🖼️ Generating image keywords for ${companionName} (${subject} - ${topic})...`);
+
+    const prompt = `
+You are an expert prompt engineer for stock photography search. 
+Generate a JSON object containing an array of 5 highly visual, distinct image search keywords for Unsplash.
+The keywords should capture the essence of:
+Subject: ${subject}
+Topic: ${topic}
+Companion Name: ${companionName}
+
+Requirements:
+- Make the keywords visual and descriptive (e.g., "vintage telescope astronomy", "modern chemistry lab", "ancient greek ruins").
+- Do NOT include the companion's raw name unless it is a famous historical figure or place.
+- Return ONLY valid JSON in this exact format, with no markdown formatting or other text:
+{
+  "keywords": ["keyword 1", "keyword 2", "keyword 3", "keyword 4", "keyword 5"]
+}
+`;
+
+    try {
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an AI that outputs pure JSON for image search keywords."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            model: "llama-3.1-8b-instant",
+            temperature: 0.7,
+            max_tokens: 150,
+            response_format: { type: "json_object" }
+        });
+
+        const responseContent = completion.choices[0]?.message?.content;
+        if (!responseContent) throw new Error('No response from Groq');
+
+        const parsedContent = JSON.parse(responseContent);
+        console.log('✅ Image keywords generated:', parsedContent.keywords);
+        return parsedContent as { keywords: string[] };
+    } catch (error) {
+        console.error('❌ Error generating image keywords:', error);
+        // Fallback keywords if AI generation fails
+        return { keywords: [`${subject} ${topic}`.trim(), subject, topic].filter(Boolean) };
     }
 };

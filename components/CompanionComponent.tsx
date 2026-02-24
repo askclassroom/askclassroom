@@ -187,6 +187,8 @@ import { CompanionComponentProps } from '@/types';
 import { QuizModal } from './QuizModal';
 import { generateQuizFromTranscript, saveQuiz, getQuizBySessionId } from '@/lib/actions/quiz.actions';
 import { completeLearningSession } from '@/lib/actions/dashboard.actions';
+import { ImageCarousel } from './ImageCarousel';
+import { Film, Image as ImageIcon } from 'lucide-react';
 
 enum CallStatus {
     INACTIVE = 'INACTIVE',
@@ -201,11 +203,14 @@ interface DisplayWord {
     isActive: boolean;
 }
 
+type MediaMode = 'photo' | 'video';
+
 const CompanionComponent = ({ companionId, subject, topic, name, userName, userImage, style, voice }: CompanionComponentProps) => {
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [messages, setMessages] = useState<SavedMessage[]>([]);
+    const [mediaMode, setMediaMode] = useState<MediaMode>('photo');
     const currentSessionIdRef = useRef<string | null>(null);
     // Add these states
     const [showQuizModal, setShowQuizModal] = useState(false);
@@ -252,15 +257,32 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     }, [liveWords]);
 
     // Process partial transcript (real-time animation)
+    // const processPartialTranscript = (transcript: string) => {
+    //     if (!transcript || transcript === lastProcessedRef.current) return;
+
+    //     const words = transcript.split(' ');
+
+    //     // Create display words with unique IDs
+    //     const newLiveWords: DisplayWord[] = words.map((word, index) => ({
+    //         text: word,
+    //         id: `live-${Date.now()}-${index}`,
+    //         isActive: index === words.length - 1 // Last word is active
+    //     }));
+
+    //     setLiveWords(newLiveWords);
+    //     lastProcessedRef.current = transcript;
+    // };
+
+    // Process partial transcript (real-time animation)
     const processPartialTranscript = (transcript: string) => {
         if (!transcript || transcript === lastProcessedRef.current) return;
 
         const words = transcript.split(' ');
 
-        // Create display words with unique IDs
+        // Create display words with better active word detection
         const newLiveWords: DisplayWord[] = words.map((word, index) => ({
             text: word,
-            id: `live-${Date.now()}-${index}`,
+            id: `live-${Date.now()}-${index}-${Math.random()}`,
             isActive: index === words.length - 1 // Last word is active
         }));
 
@@ -503,30 +525,78 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     };
 
     return (
+        // <section className="flex flex-col h-[70vh]">
+        //     <section className="flex gap-8 max-sm:flex-col">
+        //         <div className="companion-section flex flex-col h-full min-h-[300px]">
+        //             <div className="w-full flex-1 relative min-h-[300px]">
+        //                 <ImageCarousel companionName={name} subject={subject} topic={topic} />
+
+        //                 {/* Lottie Animation overlays the carousel when active */}
+        //                 <div className={cn('absolute inset-0 z-10 flex items-center justify-center pointer-events-none transition-opacity duration-1000', callStatus === CallStatus.ACTIVE ? 'opacity-100' : 'opacity-0')}>
+        //                     <Lottie
+        //                         lottieRef={lottieRef}
+        //                         animationData={soundwaves}
+        //                         autoplay={false}
+        //                         className="companion-lottie w-full max-w-[200px]"
+        //                     />
+        //                 </div>
+        //             </div>
+        //             <p className="font-bold text-2xl mt-4">{name}</p>
+        //         </div>
+
         <section className="flex flex-col h-[70vh]">
             <section className="flex gap-8 max-sm:flex-col">
-                <div className="companion-section">
-                    <div className="companion-avatar" style={{ backgroundColor: getSubjectColor(subject) }}>
-                        <div
-                            className={cn(
-                                'absolute transition-opacity duration-1000',
-                                callStatus === CallStatus.FINISHED || callStatus === CallStatus.INACTIVE ? 'opacity-100' : 'opacity-0',
-                                callStatus === CallStatus.CONNECTING && 'opacity-100 animate-pulse'
-                            )}
-                        >
-                            <Image src={`/icons/${subject}.svg`} alt={subject} width={150} height={150} className="max-sm:w-fit" />
-                        </div>
+                <div className="companion-section flex flex-col h-full min-h-[300px] flex-1">
+                    <div className="flex items-center justify-between mb-4">
+                        <p className="font-bold text-2xl">{name}</p>
 
-                        <div className={cn('absolute transition-opacity duration-1000', callStatus === CallStatus.ACTIVE ? 'opacity-100' : 'opacity-0')}>
+                        {/* Media Mode Toggle */}
+                        <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                            <button
+                                onClick={() => setMediaMode('photo')}
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 rounded-md transition-all",
+                                    mediaMode === 'photo'
+                                        ? "bg-white shadow-sm text-primary"
+                                        : "text-gray-600 hover:text-gray-900"
+                                )}
+                            >
+                                <ImageIcon className="w-4 h-4" />
+                                <span className="text-sm font-medium">Photos</span>
+                            </button>
+                            <button
+                                onClick={() => setMediaMode('video')}
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 rounded-md transition-all",
+                                    mediaMode === 'video'
+                                        ? "bg-white shadow-sm text-primary"
+                                        : "text-gray-600 hover:text-gray-900"
+                                )}
+                            >
+                                <Film className="w-4 h-4" />
+                                <span className="text-sm font-medium">Videos</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="w-full flex-1 relative min-h-[300px]">
+                        <ImageCarousel
+                            companionName={name}
+                            subject={subject}
+                            topic={topic}
+                            isVideoMode={mediaMode === 'video'}
+                        />
+
+                        {/* Lottie Animation overlays the carousel when active */}
+                        <div className={cn('absolute inset-0 z-10 flex items-center justify-center pointer-events-none transition-opacity duration-1000', callStatus === CallStatus.ACTIVE ? 'opacity-100' : 'opacity-0')}>
                             <Lottie
                                 lottieRef={lottieRef}
                                 animationData={soundwaves}
                                 autoplay={false}
-                                className="companion-lottie"
+                                className="companion-lottie w-full max-w-[200px]"
                             />
                         </div>
                     </div>
-                    <p className="font-bold text-2xl">{name}</p>
                 </div>
 
                 <div className="user-section">
@@ -560,41 +630,63 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             </section>
 
             {/* Whiteboard Animation Section */}
+            {/* Whiteboard Animation Section */}
+            {/* Whiteboard Animation Section - SIMPLIFIED */}
             <section className="mt-8 flex-1 flex flex-col min-h-0">
-                <div className="whiteboard-container flex flex-col h-full">
+                <div className="whiteboard-container">
                     <div className="whiteboard-header">
                         <span className="whiteboard-title">{name} is explaining:</span>
-                        <span className="whiteboard-status">
-                            {isSpeaking ? '🔴 Speaking' : '⚪ Listening'}
+                        <span className={cn("whiteboard-status", isSpeaking && "speaking")}>
+                            {isSpeaking ? (
+                                <>
+                                    <span className="relative flex h-2.5 w-2.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                                    </span>
+                                    Speaking
+                                </>
+                            ) : '⚪ Listening'}
                         </span>
                     </div>
 
-                    <div className="whiteboard-content flex-1 overflow-y-auto" ref={wordsContainerRef}>
+                    <div className="whiteboard-content" ref={wordsContainerRef}>
                         {/* Completed sentences */}
-                        {completedSentences.map((sentence, sentenceIndex) => (
-                            <div key={`completed-${sentenceIndex}`} className="completed-sentence mb-4">
-                                {sentence.split(' ').map((word, wordIndex) => (
-                                    <span key={`${sentenceIndex}-${wordIndex}`} className="word-completed">
-                                        {word}{' '}
-                                    </span>
+                        {completedSentences.length > 0 && (
+                            <div className="words-wrapper">
+                                {completedSentences.map((sentence, sentenceIndex) => (
+                                    <div key={`completed-${sentenceIndex}`} className="completed-sentence">
+                                        {sentence.split(' ').map((word, wordIndex) => (
+                                            <span key={`${sentenceIndex}-${wordIndex}`} className="word-completed">
+                                                {word}{' '}
+                                            </span>
+                                        ))}
+                                    </div>
                                 ))}
                             </div>
-                        ))}
+                        )}
 
                         {/* Live words being spoken */}
                         {liveWords.length > 0 && (
-                            <div className="live-sentence">
-                                {liveWords.map((word, index) => (
-                                    <span
-                                        key={word.id}
-                                        className={cn(
-                                            'word-live',
-                                            word.isActive && 'word-active'
-                                        )}
-                                    >
-                                        {word.text}{' '}
-                                    </span>
-                                ))}
+                            <div className="words-wrapper live-sentence">
+                                {liveWords.map((word, index) => {
+                                    // Determine word state
+                                    let wordClass = 'word-live';
+                                    if (word.isActive) {
+                                        wordClass = 'word-active';
+                                    } else if (index < liveWords.length - 1) {
+                                        wordClass = 'word-spoken';
+                                    } else {
+                                        wordClass = 'word-upcoming';
+                                    }
+
+                                    return (
+                                        <span key={word.id} className={wordClass}>
+                                            {word.text}{' '}
+                                        </span>
+                                    );
+                                })}
+                                {/* Add blinking cursor when speaking */}
+                                {isSpeaking && <span className="speaking-cursor"></span>}
                             </div>
                         )}
 
@@ -602,8 +694,8 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                         {completedSentences.length === 0 && liveWords.length === 0 && (
                             <div className="whiteboard-placeholder">
                                 {callStatus === CallStatus.ACTIVE
-                                    ? 'Waiting for AI response...'
-                                    : 'Start a session to begin'}
+                                    ? '✨ Waiting for AI response...'
+                                    : '🎓 Click "Start Session" to begin'}
                             </div>
                         )}
                     </div>
@@ -611,7 +703,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             </section>
 
             {/* Transcript Section */}
-            <section className="transcript mt-4">
+            {/* <section className="transcript mt-4">
                 <div className="transcript-message no-scrollbar">
                     {messages.map((message, index) => (
                         <p key={index} className={cn(
@@ -626,7 +718,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                     ))}
                 </div>
                 <div className="transcript-fade" />
-            </section>
+            </section> */}
             {/* Quiz Modal */}
             {showQuizModal && generatedQuiz && (
                 <QuizModal
