@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { generateImageKeywords } from '@/lib/actions/companion.actions';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createClient, Photo } from 'pexels';
 
 interface ImageCarouselProps {
     companionName: string;
@@ -12,73 +13,95 @@ interface ImageCarouselProps {
     topic: string;
 }
 
-interface UnsplashPhoto {
-    id: string;
-    urls: {
-        regular: string;
-        small: string;
-    };
-    alt_description: string;
-    user: {
-        name: string;
-    };
-}
+// We can just use the Photo type from 'pexels', but we'll adapt the component to accept it.
 
 export function ImageCarousel({ companionName, subject, topic }: ImageCarouselProps) {
-    const [images, setImages] = useState<UnsplashPhoto[]>([]);
+    const [images, setImages] = useState<Photo[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [error, setError] = useState<string | null>(null);
 
-    const hasFetched = useRef(false);
+    const [page, setPage] = useState(1);
+    const [keywordsData, setKeywordsData] = useState<{ keywords: string[] } | null>(null);
 
+    const hasFetchedInitial = useRef(false);
+
+    // Initial fetch to get keywords and first page of images
     useEffect(() => {
-        const fetchImages = async () => {
-            if (hasFetched.current) return;
-            hasFetched.current = true;
+        const fetchInitialImages = async () => {
+            if (hasFetchedInitial.current) return;
+            hasFetchedInitial.current = true;
 
             setIsLoading(true);
             setError(null);
 
             try {
-                // 1. Generate keywords
-                const keywordsData = await generateImageKeywords(companionName, subject, topic);
-                if (!keywordsData || keywordsData.keywords.length === 0) {
+                const data = await generateImageKeywords(companionName, subject, topic);
+                if (!data || data.keywords.length === 0) {
                     throw new Error("Could not generate keywords");
                 }
+                setKeywordsData(data);
 
-                // We'll just construct a generic query based on the companion details to guarantee more cohesive results 
-                // Alternatively, we use the first AI generated keyword as the main query, and fetch multiple images
-                const mainQuery = keywordsData.keywords[0] || `${subject} ${topic}`;
+                const mainQuery = data.keywords[0] || `${subject} ${topic}`;
+                const pexelsClientId = process.env.NEXT_PUBLIC_PEXELS_CLIENT_ID;
+                if (!pexelsClientId) throw new Error("Pexels Client ID is missing");
 
-                // 2. Fetch from Unsplash
-                const unsplashClientId = process.env.NEXT_PUBLIC_UNSPLASH_CLIENT_ID;
-                console.log("Unsplash Client ID:", unsplashClientId);
+                const client = createClient(pexelsClientId);
+                const res = await client.photos.search({ query: mainQuery, per_page: 10, orientation: 'landscape' });
 
-                // Fetch up to 5 distinct photos for the query to create the carousel
-                const res = await fetch(`https://api.unsplash.com/search/photos?client_id=${unsplashClientId}&query=${encodeURIComponent(mainQuery)}&per_page=5&orientation=landscape`);
-
-                if (!res.ok) {
-                    throw new Error(`Unsplash API error: ${res.status}`);
-                }
-
-                const data = await res.json();
-
-                if (data.results && data.results.length > 0) {
-                    setImages(data.results);
+                if ('photos' in res && res.photos.length > 0) {
+                    setImages(res.photos);
                 } else {
                     setError("No images found for this topic.");
                 }
             } catch (err: any) {
-                console.error("Error loading images:", err);
+                console.error("Error loading initial images:", err);
                 setError("Failed to load images.");
             } finally {
                 setIsLoading(false);
             }
         };
 
-        fetchImages();
+        fetchInitialImages();
     }, [companionName, subject, topic]);
+
+    // Fetch more images when we get close to the end of the current list
+    useEffect(() => {
+        const fetchMoreImages = async () => {
+            // Fetch more if we have keywords data, are not loading, and are within 3 images of the end
+            if (!keywordsData || isLoading || images.length === 0 || currentIndex < images.length - 3) return;
+
+            setIsLoading(true);
+            try {
+                // Determine which keyword to use based on the page to get variety
+                const keywordIndex = (page) % keywordsData.keywords.length;
+                const query = keywordsData.keywords[keywordIndex];
+
+                const nextPage = page + 1;
+                const pexelsClientId = process.env.NEXT_PUBLIC_PEXELS_CLIENT_ID;
+                if (!pexelsClientId) return;
+
+                const client = createClient(pexelsClientId);
+                const res = await client.photos.search({ query, per_page: 10, page: nextPage, orientation: 'landscape' });
+
+                if ('photos' in res && res.photos.length > 0) {
+                    setImages(prev => {
+                        // Filter out duplicates by ID before adding
+                        const existingIds = new Set(prev.map(img => img.id));
+                        const newImages = res.photos.filter(img => !existingIds.has(img.id));
+                        return [...prev, ...newImages];
+                    });
+                    setPage(nextPage);
+                }
+            } catch (err) {
+                console.error("Error fetching more images:", err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchMoreImages();
+    }, [currentIndex, images.length, keywordsData, page, isLoading]);
 
     // Auto-advance carousel
     useEffect(() => {
@@ -115,8 +138,8 @@ export function ImageCarousel({ companionName, subject, topic }: ImageCarouselPr
                     className="absolute inset-0"
                 >
                     <Image
-                        src={images[currentIndex].urls.regular}
-                        alt={images[currentIndex].alt_description || `${subject} visualization`}
+                        src={images[currentIndex].src.landscape}
+                        alt={images[currentIndex].alt || `${subject} visualization`}
                         fill
                         className="object-cover"
                         sizes="(max-width: 768px) 100vw, 50vw"
@@ -124,7 +147,7 @@ export function ImageCarousel({ companionName, subject, topic }: ImageCarouselPr
                     />
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 flex flex-col justify-end">
                         <p className="text-white text-xs opacity-80 backdrop-blur-sm truncate">
-                            Photo by {images[currentIndex].user.name} on Unsplash
+                            Photo by {images[currentIndex].photographer} on Pexels
                         </p>
                     </div>
                 </motion.div>
