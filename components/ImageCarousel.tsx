@@ -91,9 +91,9 @@ export function ImageCarousel({ companionName, subject, topic }: ImageCarouselPr
         return () => clearInterval(interval);
     }, [images]);
 
-    if (isLoading) {
+    if (isLoading && images.length === 0) {
         return (
-            <div className="w-full h-48 rounded-xl bg-gray-100 animate-pulse flex items-center justify-center mt-6 shadow-sm overflow-hidden">
+            <div className="w-full h-full min-h-[300px] flex-1 rounded-xl bg-gray-100 animate-pulse flex items-center justify-center shadow-sm overflow-hidden">
                 <p className="text-gray-400 text-sm">Visualizing {subject}...</p>
             </div>
         );
@@ -104,10 +104,10 @@ export function ImageCarousel({ companionName, subject, topic }: ImageCarouselPr
     }
 
     return (
-        <div className="w-full relative h-48 sm:h-64 mt-6 rounded-xl overflow-hidden shadow-lg group bg-black/5">
+        <div className="w-full h-full min-h-[300px] flex-1 relative rounded-xl overflow-hidden shadow-lg group bg-black/5">
             <AnimatePresence initial={false} mode="wait">
                 <motion.div
-                    key={currentIndex}
+                    key={images[currentIndex]?.id || currentIndex}
                     initial={{ opacity: 0, scale: 1.05 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}

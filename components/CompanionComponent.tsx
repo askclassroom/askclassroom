@@ -506,29 +506,21 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     return (
         <section className="flex flex-col h-[70vh]">
             <section className="flex gap-8 max-sm:flex-col">
-                <div className="companion-section">
-                    <div className="companion-avatar" style={{ backgroundColor: getSubjectColor(subject) }}>
-                        <div
-                            className={cn(
-                                'absolute transition-opacity duration-1000',
-                                callStatus === CallStatus.FINISHED || callStatus === CallStatus.INACTIVE ? 'opacity-100' : 'opacity-0',
-                                callStatus === CallStatus.CONNECTING && 'opacity-100 animate-pulse'
-                            )}
-                        >
-                            <Image src={`/icons/${subject}.svg`} alt={subject} width={150} height={150} className="max-sm:w-fit" />
-                        </div>
+                <div className="companion-section flex flex-col h-full min-h-[300px]">
+                    <div className="w-full flex-1 relative min-h-[300px]">
+                        <ImageCarousel companionName={name} subject={subject} topic={topic} />
 
-                        <div className={cn('absolute transition-opacity duration-1000', callStatus === CallStatus.ACTIVE ? 'opacity-100' : 'opacity-0')}>
+                        {/* Lottie Animation overlays the carousel when active */}
+                        <div className={cn('absolute inset-0 z-10 flex items-center justify-center pointer-events-none transition-opacity duration-1000', callStatus === CallStatus.ACTIVE ? 'opacity-100' : 'opacity-0')}>
                             <Lottie
                                 lottieRef={lottieRef}
                                 animationData={soundwaves}
                                 autoplay={false}
-                                className="companion-lottie"
+                                className="companion-lottie w-full max-w-[200px]"
                             />
                         </div>
                     </div>
-                    <p className="font-bold text-2xl">{name}</p>
-                    <ImageCarousel companionName={name} subject={subject} topic={topic} />
+                    <p className="font-bold text-2xl mt-4">{name}</p>
                 </div>
 
                 <div className="user-section">
