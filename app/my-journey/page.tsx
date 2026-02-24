@@ -10,17 +10,24 @@ import {
   getUserCompanions,
   getUserSessions,
   getBookmarkedCompanions,
+  getUserSessionsWithTranscripts,
 } from "@/lib/actions/companion.actions";
 import Image from "next/image";
 import CompanionsList from "@/components/CompanionsList";
+import { SessionsList } from "@/components/SessionsList";
+import { getUserQuizzes } from '@/lib/actions/quiz.actions';
+import { QuizzesList } from '@/components/QuizzesList';
+
 
 const Profile = async () => {
   const user = await currentUser();
+  const userQuizzes = await getUserQuizzes(user.id, 10);
 
   if (!user) redirect("/sign-in");
 
   const companions = await getUserCompanions(user.id);
   const sessionHistory = await getUserSessions(user.id);
+  const sessionsWithTranscripts = await getUserSessionsWithTranscripts(user.id, 20);
   // const bookmarkedCompanions = await getBookmarkedCompanions(user.id);
 
   return (
@@ -51,7 +58,8 @@ const Profile = async () => {
                 width={22}
                 height={22}
               />
-              <p className="text-2xl font-bold">{sessionHistory.length}</p>
+              {/* <p className="text-2xl font-bold">{sessionHistory.length}</p> */}
+              <p className="text-2xl font-bold">{sessionsWithTranscripts.length}</p>
             </div>
             <div>Lessons completed</div>
           </div>
@@ -64,7 +72,7 @@ const Profile = async () => {
           </div>
         </div>
       </section>
-      <Accordion type="multiple">
+      <Accordion type="multiple" defaultValue={['recent']}>
         {/* <AccordionItem value="bookmarks">
           <AccordionTrigger className="text-2xl font-bold">
             Bookmarked Companions {`(${bookmarkedCompanions.length})`}
@@ -78,21 +86,33 @@ const Profile = async () => {
         </AccordionItem> */}
         <AccordionItem value="recent">
           <AccordionTrigger className="text-2xl font-bold">
-            Recent Sessions
+            Recent Sessions with Transcripts {`(${sessionsWithTranscripts.length})`}
           </AccordionTrigger>
-          <AccordionContent>
+          {/* <AccordionContent>
             <CompanionsList
               title="Recent Sessions"
               companions={sessionHistory}
             />
+          </AccordionContent> */}
+          <AccordionContent>
+            <SessionsList sessions={sessionsWithTranscripts} />
           </AccordionContent>
         </AccordionItem>
+
         <AccordionItem value="companions">
           <AccordionTrigger className="text-2xl font-bold">
             My Companions {`(${companions.length})`}
           </AccordionTrigger>
           <AccordionContent>
             <CompanionsList title="My Companions" companions={companions} />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="quizzes">
+          <AccordionTrigger className="text-2xl font-bold">
+            My Quiz Results {`(${userQuizzes.length})`}
+          </AccordionTrigger>
+          <AccordionContent>
+            <QuizzesList quizzes={userQuizzes} />
           </AccordionContent>
         </AccordionItem>
       </Accordion>

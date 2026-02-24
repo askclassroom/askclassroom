@@ -48,3 +48,10 @@ type Message =
   | TranscriptMessage
   | FunctionCallMessage
   | FunctionCallResultMessage;
+
+// Add to your existing types
+interface SavedMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp?: string;
+}

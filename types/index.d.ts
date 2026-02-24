@@ -81,3 +81,18 @@ interface CompanionComponentProps {
   voice: string;
   style: string;
 }
+
+export interface TranscriptMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+export interface SessionHistoryWithTranscript {
+  id: string;
+  created_at: string;
+  user_id: string;
+  companion_id: string;
+  transcript: TranscriptMessage[];
+  companions?: Companion;
+}
