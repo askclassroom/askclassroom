@@ -187,6 +187,7 @@ import { CompanionComponentProps } from '@/types';
 import { QuizModal } from './QuizModal';
 import { generateQuizFromTranscript, saveQuiz, getQuizBySessionId } from '@/lib/actions/quiz.actions';
 import { completeLearningSession } from '@/lib/actions/dashboard.actions';
+import { ImageCarousel } from './ImageCarousel';
 
 enum CallStatus {
     INACTIVE = 'INACTIVE',
@@ -527,6 +528,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                         </div>
                     </div>
                     <p className="font-bold text-2xl">{name}</p>
+                    <ImageCarousel companionName={name} subject={subject} topic={topic} />
                 </div>
 
                 <div className="user-section">

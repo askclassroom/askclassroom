@@ -3,14 +3,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  typescript:{
+  typescript: {
     ignoreBuildErrors: true,
   },
   images: {
-      remotePatterns: [
-          { hostname: 'img.clerk.com'}
-      ]
-  }
+    remotePatterns: [
+      { hostname: 'img.clerk.com' },
+      { hostname: 'images.unsplash.com' },
+    ],
+  },
 };
 
 export default withSentryConfig(nextConfig, {
