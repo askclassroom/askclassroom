@@ -188,6 +188,7 @@ import { QuizModal } from './QuizModal';
 import { generateQuizFromTranscript, saveQuiz, getQuizBySessionId } from '@/lib/actions/quiz.actions';
 import { completeLearningSession } from '@/lib/actions/dashboard.actions';
 import { ImageCarousel } from './ImageCarousel';
+import { Film, Image as ImageIcon } from 'lucide-react';
 
 enum CallStatus {
     INACTIVE = 'INACTIVE',
@@ -202,11 +203,14 @@ interface DisplayWord {
     isActive: boolean;
 }
 
+type MediaMode = 'photo' | 'video';
+
 const CompanionComponent = ({ companionId, subject, topic, name, userName, userImage, style, voice }: CompanionComponentProps) => {
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [messages, setMessages] = useState<SavedMessage[]>([]);
+    const [mediaMode, setMediaMode] = useState<MediaMode>('photo');
     const currentSessionIdRef = useRef<string | null>(null);
     // Add these states
     const [showQuizModal, setShowQuizModal] = useState(false);
@@ -504,11 +508,67 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     };
 
     return (
+        // <section className="flex flex-col h-[70vh]">
+        //     <section className="flex gap-8 max-sm:flex-col">
+        //         <div className="companion-section flex flex-col h-full min-h-[300px]">
+        //             <div className="w-full flex-1 relative min-h-[300px]">
+        //                 <ImageCarousel companionName={name} subject={subject} topic={topic} />
+
+        //                 {/* Lottie Animation overlays the carousel when active */}
+        //                 <div className={cn('absolute inset-0 z-10 flex items-center justify-center pointer-events-none transition-opacity duration-1000', callStatus === CallStatus.ACTIVE ? 'opacity-100' : 'opacity-0')}>
+        //                     <Lottie
+        //                         lottieRef={lottieRef}
+        //                         animationData={soundwaves}
+        //                         autoplay={false}
+        //                         className="companion-lottie w-full max-w-[200px]"
+        //                     />
+        //                 </div>
+        //             </div>
+        //             <p className="font-bold text-2xl mt-4">{name}</p>
+        //         </div>
+
         <section className="flex flex-col h-[70vh]">
             <section className="flex gap-8 max-sm:flex-col">
-                <div className="companion-section flex flex-col h-full min-h-[300px]">
+                <div className="companion-section flex flex-col h-full min-h-[300px] flex-1">
+                    <div className="flex items-center justify-between mb-4">
+                        <p className="font-bold text-2xl">{name}</p>
+
+                        {/* Media Mode Toggle */}
+                        <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                            <button
+                                onClick={() => setMediaMode('photo')}
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 rounded-md transition-all",
+                                    mediaMode === 'photo'
+                                        ? "bg-white shadow-sm text-primary"
+                                        : "text-gray-600 hover:text-gray-900"
+                                )}
+                            >
+                                <ImageIcon className="w-4 h-4" />
+                                <span className="text-sm font-medium">Photos</span>
+                            </button>
+                            <button
+                                onClick={() => setMediaMode('video')}
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 rounded-md transition-all",
+                                    mediaMode === 'video'
+                                        ? "bg-white shadow-sm text-primary"
+                                        : "text-gray-600 hover:text-gray-900"
+                                )}
+                            >
+                                <Film className="w-4 h-4" />
+                                <span className="text-sm font-medium">Videos</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="w-full flex-1 relative min-h-[300px]">
-                        <ImageCarousel companionName={name} subject={subject} topic={topic} />
+                        <ImageCarousel
+                            companionName={name}
+                            subject={subject}
+                            topic={topic}
+                            isVideoMode={mediaMode === 'video'}
+                        />
 
                         {/* Lottie Animation overlays the carousel when active */}
                         <div className={cn('absolute inset-0 z-10 flex items-center justify-center pointer-events-none transition-opacity duration-1000', callStatus === CallStatus.ACTIVE ? 'opacity-100' : 'opacity-0')}>
@@ -520,7 +580,6 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                             />
                         </div>
                     </div>
-                    <p className="font-bold text-2xl mt-4">{name}</p>
                 </div>
 
                 <div className="user-section">
