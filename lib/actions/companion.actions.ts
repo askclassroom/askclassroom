@@ -519,3 +519,65 @@ Example format:
         throw error;
     }
 };
+
+// Add this to your existing companion.actions.ts file
+
+/**
+ * Generate image keywords based on recent transcript lines
+ * Focuses on the most recent conversation for precise visual matching
+ */
+export const generateKeywordsFromRecentTranscript = async (
+    recentTranscript: string,
+    subject: string,
+    topic: string
+) => {
+    console.log(`🔄 Generating keywords from recent transcript...`);
+
+    const prompt = `
+You are an expert prompt engineer for stock photography search.
+Based on the MOST RECENT lines from a tutoring session, generate a SINGLE, highly specific image search keyword.
+
+Subject: ${subject}
+Topic: ${topic}
+
+Recent conversation (focus on the last line for the current topic):
+${recentTranscript}
+
+Requirements:
+- Generate EXACTLY ONE keyword phrase (3-5 words max)
+- Focus heavily on the LAST LINE of the conversation - this is what's being discussed RIGHT NOW
+- Make it highly visual and specific (e.g., "photosynthesis diagram chloroplast", "quantum physics experiment", "roman colosseum architecture")
+- Do NOT use generic terms like "person talking" or "teacher"
+- Return ONLY the keyword phrase, no JSON, no explanations, no quotes
+
+Example response: "mitochondria cell structure diagram"
+`;
+
+    try {
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "You generate precise, single-line image search keywords based on recent educational conversation. Output ONLY the keyword phrase."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.3,
+            max_tokens: 30,
+        });
+
+        const keyword = completion.choices[0]?.message?.content?.trim();
+        if (!keyword) throw new Error('No response from Groq');
+
+        console.log('✅ Generated keyword from transcript:', keyword);
+        return keyword;
+    } catch (error) {
+        console.error('❌ Error generating keyword from transcript:', error);
+        // Fallback to subject+topic if generation fails
+        return `${subject} ${topic}`.trim();
+    }
+};

@@ -191,6 +191,7 @@ import { generateRealTimeExamples } from '@/lib/actions/companion.actions';
 import { ImageCarousel } from './ImageCarousel';
 import { Film, Image as ImageIcon, Lightbulb } from 'lucide-react';
 import { RealTimeExamplesModal } from './RealTimeExamplesModal';
+import { generateKeywordsFromRecentTranscript } from "@/lib/actions/companion.actions";
 
 enum CallStatus {
     INACTIVE = 'INACTIVE',
@@ -236,6 +237,59 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
 
     // Add state for session timing
     const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+
+    // Inside the CompanionComponent function, add these states:
+    const [lastKeywordUpdate, setLastKeywordUpdate] = useState<Date>(new Date());
+    const keywordIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const [currentTranscriptKeyword, setCurrentTranscriptKeyword] = useState<string>("");
+    const isGeneratingKeywordRef = useRef<boolean>(false);
+
+    // Add this function to get recent transcript context
+    const getRecentTranscriptContext = (): string => {
+        const recentMessages = messagesRef.current.slice(0, 3); // Get last 3 messages
+        if (recentMessages.length === 0) return "";
+
+        return recentMessages
+            .map(msg => `${msg.role === 'assistant' ? name : 'Student'}: ${msg.content}`)
+            .reverse()
+            .join('\n');
+    };
+
+    // Add this function to generate keyword from recent transcript
+    const generateKeywordFromTranscript = async () => {
+        if (isGeneratingKeywordRef.current || callStatus !== CallStatus.ACTIVE) return;
+
+        const recentContext = getRecentTranscriptContext();
+        if (!recentContext) return;
+
+        isGeneratingKeywordRef.current = true;
+
+        try {
+            console.log('🔄 Generating keyword from recent transcript...');
+            const keyword = await generateKeywordsFromRecentTranscript(
+                recentContext,
+                subject,
+                topic
+            );
+
+            if (keyword && keyword !== currentTranscriptKeyword) {
+                console.log('🎯 New keyword generated:', keyword);
+                setCurrentTranscriptKeyword(keyword);
+
+                // Trigger media refresh in ImageCarousel
+                // We'll use a custom event to communicate with ImageCarousel
+                const event = new CustomEvent('transcriptKeywordUpdate', {
+                    detail: { keyword, isVideoMode: mediaMode === 'video' }
+                });
+                window.dispatchEvent(event);
+            }
+        } catch (error) {
+            console.error('Failed to generate keyword from transcript:', error);
+        } finally {
+            isGeneratingKeywordRef.current = false;
+        }
+    };
+
 
     // Update ref when messages change
     useEffect(() => {
@@ -507,6 +561,49 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
         };
     }, [companionId]);
 
+    useEffect(() => {
+        if (callStatus === CallStatus.ACTIVE) {
+            // Clear any existing interval
+            if (keywordIntervalRef.current) {
+                clearInterval(keywordIntervalRef.current);
+            }
+
+            // Start new interval - every 10 seconds
+            keywordIntervalRef.current = setInterval(() => {
+                generateKeywordFromTranscript();
+            }, 10000); // 10 seconds
+
+            // Generate first keyword immediately
+            generateKeywordFromTranscript();
+        } else {
+            // Clear interval when call ends
+            if (keywordIntervalRef.current) {
+                clearInterval(keywordIntervalRef.current);
+                keywordIntervalRef.current = null;
+            }
+        }
+
+        return () => {
+            if (keywordIntervalRef.current) {
+                clearInterval(keywordIntervalRef.current);
+            }
+        };
+    }, [callStatus, mediaMode]); // Re-run when call status or media mode changes
+
+    // Also generate keyword when new messages arrive (optional, for faster response)
+    useEffect(() => {
+        if (callStatus === CallStatus.ACTIVE && messages.length > 0) {
+            // Check if it's been at least 8 seconds since last update
+            const now = new Date();
+            const secondsSinceLastUpdate = (now.getTime() - lastKeywordUpdate.getTime()) / 1000;
+
+            if (secondsSinceLastUpdate >= 8) {
+                generateKeywordFromTranscript();
+                setLastKeywordUpdate(now);
+            }
+        }
+    }, [messages]); // Run when messages update
+
     const toggleMicrophone = () => {
         const isMuted = vapi.isMuted();
         vapi.setMuted(!isMuted);
@@ -559,24 +656,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     };
 
     return (
-        // <section className="flex flex-col h-[70vh]">
-        //     <section className="flex gap-8 max-sm:flex-col">
-        //         <div className="companion-section flex flex-col h-full min-h-[300px]">
-        //             <div className="w-full flex-1 relative min-h-[300px]">
-        //                 <ImageCarousel companionName={name} subject={subject} topic={topic} />
 
-        //                 {/* Lottie Animation overlays the carousel when active */}
-        //                 <div className={cn('absolute inset-0 z-10 flex items-center justify-center pointer-events-none transition-opacity duration-1000', callStatus === CallStatus.ACTIVE ? 'opacity-100' : 'opacity-0')}>
-        //                     <Lottie
-        //                         lottieRef={lottieRef}
-        //                         animationData={soundwaves}
-        //                         autoplay={false}
-        //                         className="companion-lottie w-full max-w-[200px]"
-        //                     />
-        //                 </div>
-        //             </div>
-        //             <p className="font-bold text-2xl mt-4">{name}</p>
-        //         </div>
 
         <section className="flex flex-col h-[70vh]">
             <section className="flex gap-8 max-sm:flex-col">
