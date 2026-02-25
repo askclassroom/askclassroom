@@ -211,11 +211,11 @@ body {
   }
 
   .companion-section {
-    @apply border-2 border-orange-500 w-2/3 max-sm:w-full flex flex-col gap-4 justify-center items-center rounded-lg;
+    @apply w-2/3 max-sm:w-full flex flex-col gap-3 rounded-2xl;
   }
 
   .companion-avatar {
-    @apply size-[300px] flex items-center justify-center rounded-lg max-sm:size-[100px] mt-4;
+    @apply size-[300px] flex items-center justify-center rounded-2xl max-sm:size-[100px] mt-4;
   }
 
   .companion-lottie {
@@ -223,15 +223,15 @@ body {
   }
 
   .user-section {
-    @apply flex flex-col gap-4 w-1/3 max-sm:w-full max-sm:flex-row;
+    @apply flex flex-col gap-3 w-1/3 max-sm:w-full max-sm:flex-row;
   }
 
   .user-avatar {
-    @apply border-2 border-black flex flex-col gap-4 items-center rounded-lg py-8 max-sm:hidden;
+    @apply border border-gray-100 bg-white flex flex-col gap-3 items-center rounded-2xl py-6 px-4 shadow-sm max-sm:hidden;
   }
 
   .btn-mic {
-    @apply border-2 border-black rounded-lg flex flex-col gap-2 items-center py-8 max-sm:py-2 cursor-pointer w-full;
+    @apply border border-gray-200 bg-white rounded-2xl flex flex-col gap-2 items-center py-6 max-sm:py-2 cursor-pointer w-full shadow-sm hover:border-gray-300 hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .transcript {

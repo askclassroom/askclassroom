@@ -21,9 +21,10 @@ import { QuizzesList } from '@/components/QuizzesList';
 
 const Profile = async () => {
   const user = await currentUser();
-  const userQuizzes = await getUserQuizzes(user.id, 10);
 
   if (!user) redirect("/sign-in");
+
+  const userQuizzes = await getUserQuizzes(user.id, 10);
 
   const companions = await getUserCompanions(user.id);
   const sessionHistory = await getUserSessions(user.id);
