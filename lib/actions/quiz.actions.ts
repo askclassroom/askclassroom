@@ -69,8 +69,8 @@ Ensure the JSON is valid and properly formatted. Do not include any other text.
                     content: prompt
                 }
             ],
-            model: "llama-3.1-8b-instant",
-            temperature: 0.7,
+            model: "openai/gpt-oss-120b",
+            temperature: 0.3,
             max_tokens: 20480,
         });
 

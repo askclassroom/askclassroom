@@ -368,9 +368,9 @@ Based on this session, provide a concise summary of what the student has learned
                     content: prompt
                 }
             ],
-            model: "llama-3.1-8b-instant",
-            temperature: 0.5,
-            max_tokens: 500,
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.25,
+            max_tokens: 5000,
         });
 
         const summaryResponse = completion.choices[0]?.message?.content;
@@ -433,8 +433,8 @@ Requirements:
                     content: prompt
                 }
             ],
-            model: "llama-3.1-8b-instant",
-            temperature: 0.7,
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.2,
             max_tokens: 150,
             response_format: { type: "json_object" }
         });
@@ -504,8 +504,8 @@ Example format:
                     content: prompt
                 }
             ],
-            model: "llama-3.1-8b-instant",
-            temperature: 0.7,
+            model: "openai/gpt-oss-120b",
+            temperature: 0.5,
             max_tokens: 1000,
         });
 
