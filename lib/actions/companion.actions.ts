@@ -451,3 +451,71 @@ Requirements:
         return { keywords: [`${subject} ${topic}`.trim(), subject, topic].filter(Boolean) };
     }
 };
+
+/**
+ * Generate real-time examples based on the learning session transcript
+ */
+export const generateRealTimeExamples = async (
+    transcript: SavedMessage[],
+    companionName: string,
+    subject: string,
+    topic: string
+) => {
+    console.log(`🧠 Generating real-time examples for ${subject} - ${topic}...`);
+
+    if (!transcript || transcript.length === 0) {
+        throw new Error("Transcript is empty. Cannot generate examples without context.");
+    }
+
+    const conversationText = transcript
+        .map(msg => `${msg.role === 'assistant' ? companionName : 'Student'}: ${msg.content}`)
+        .join('\n');
+
+    const prompt = `
+You are an expert educator (${companionName}) teaching ${subject} (Topic: ${topic}).
+Based on the following transcript of our learning session so far, generate 3 real-world, practical examples that illustrate the key concepts we discussed.
+
+Transcript so far:
+${conversationText}
+
+Requirements:
+- Provide exactly 3 real-world examples.
+- For each example, provide a clear, concise explanation of how it relates to the concepts discussed in the transcript.
+- Format the output clearly using Markdown (e.g., use headings for each example, bullet points if necessary). Do not include any introductory or concluding remarks outside of the markdown structure.
+
+Example format:
+### 1. [Title of Example 1]
+**Concept:** [Brief description of the concept]
+**Real-world application:** [Explanation of how the concept is applied in this example]
+
+### 2. [Title of Example 2]
+...
+`;
+
+    try {
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an expert educator providing clear, real-world examples based on a learning session transcript. Output ONLY the requested markdown format."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            model: "llama-3.1-8b-instant",
+            temperature: 0.7,
+            max_tokens: 1000,
+        });
+
+        const responseContent = completion.choices[0]?.message?.content;
+        if (!responseContent) throw new Error('No response from Groq');
+
+        console.log('✅ Real-time examples generated successfully');
+        return responseContent.trim();
+    } catch (error) {
+        console.error('❌ Error generating real-time examples:', error);
+        throw error;
+    }
+};

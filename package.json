@@ -29,6 +29,7 @@
     "katex": "^0.16.28",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.563.0",
+    "markdown-to-jsx": "^9.7.6",
     "next": "16.1.6",
     "pexels": "^1.4.0",
     "radix-ui": "^1.4.3",
