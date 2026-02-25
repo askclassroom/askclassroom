@@ -546,7 +546,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
 
         <section className="flex flex-col h-[70vh]">
             <section className="flex gap-8 max-sm:flex-col">
-                <div className="companion-section flex flex-col h-full min-h-[300px] flex-1">
+                <div className="companion-section flex flex-col h-full min-h-75 flex-1">
                     <div className="flex items-center justify-between mb-4">
                         <p className="font-bold text-2xl">{name}</p>
 
@@ -579,7 +579,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                         </div>
                     </div>
 
-                    <div className="w-full flex-1 relative min-h-[300px]">
+                    <div className="w-full flex-1 relative min-h-75">
                         <ImageCarousel
                             companionName={name}
                             subject={subject}
@@ -593,7 +593,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                                 lottieRef={lottieRef}
                                 animationData={soundwaves}
                                 autoplay={false}
-                                className="companion-lottie w-full max-w-[200px]"
+                                className="companion-lottie w-full max-w-50"
                             />
                         </div>
                     </div>
