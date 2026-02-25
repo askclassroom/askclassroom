@@ -187,8 +187,10 @@ import { CompanionComponentProps } from '@/types';
 import { QuizModal } from './QuizModal';
 import { generateQuizFromTranscript, saveQuiz, getQuizBySessionId } from '@/lib/actions/quiz.actions';
 import { completeLearningSession } from '@/lib/actions/dashboard.actions';
+import { generateRealTimeExamples } from '@/lib/actions/companion.actions';
 import { ImageCarousel } from './ImageCarousel';
-import { Film, Image as ImageIcon } from 'lucide-react';
+import { Film, Image as ImageIcon, Lightbulb } from 'lucide-react';
+import { RealTimeExamplesModal } from './RealTimeExamplesModal';
 
 enum CallStatus {
     INACTIVE = 'INACTIVE',
@@ -216,6 +218,11 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     const [showQuizModal, setShowQuizModal] = useState(false);
     const [generatedQuiz, setGeneratedQuiz] = useState<any>(null);
     const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+
+    // Real Time Examples states
+    const [showExamplesModal, setShowExamplesModal] = useState(false);
+    const [generatedExamples, setGeneratedExamples] = useState<string | null>(null);
+    const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
 
     // Whiteboard animation states
     const [liveWords, setLiveWords] = useState<DisplayWord[]>([]);
@@ -524,6 +531,33 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
         vapi.stop();
     };
 
+    const handleGenerateExamples = async () => {
+        if (messagesRef.current.length === 0) return;
+
+        setShowExamplesModal(true);
+        setIsGeneratingExamples(true);
+        setGeneratedExamples(null);
+
+        try {
+            // Get messages chronologically
+            const chronologicalMessages = [...messagesRef.current].reverse();
+
+            const examples = await generateRealTimeExamples(
+                chronologicalMessages,
+                name,
+                subject,
+                topic
+            );
+
+            setGeneratedExamples(examples);
+        } catch (error) {
+            console.error('Failed to generate examples:', error);
+            setGeneratedExamples("Failed to generate examples. Please try talking more about the topic first.");
+        } finally {
+            setIsGeneratingExamples(false);
+        }
+    };
+
     return (
         // <section className="flex flex-col h-[70vh]">
         //     <section className="flex gap-8 max-sm:flex-col">
@@ -552,6 +586,19 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
 
                         {/* Media Mode Toggle */}
                         <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                            {/* Real Time Examples Button */}
+                            <button
+                                onClick={handleGenerateExamples}
+                                disabled={isGeneratingExamples}
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 rounded-md transition-all mr-2",
+                                    "bg-blue-100 text-blue-700 hover:bg-blue-200 shadow-sm"
+                                )}
+                                title="Generate real-time examples based on your session so far"
+                            >
+                                <Lightbulb className="w-4 h-4" />
+                                <span className="text-sm font-medium whitespace-nowrap hidden sm:inline">Real Time Examples</span>
+                            </button>
                             <button
                                 onClick={() => setMediaMode('photo')}
                                 className={cn(
@@ -730,6 +777,16 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                     subject={subject}
                 />
             )}
+
+            {/* Real Time Examples Modal */}
+            <RealTimeExamplesModal
+                isOpen={showExamplesModal}
+                onClose={() => setShowExamplesModal(false)}
+                examples={generatedExamples}
+                isGenerating={isGeneratingExamples}
+                companionName={name}
+                subject={subject}
+            />
 
             {/* Loading indicator for quiz generation */}
             {isGeneratingQuiz && (
