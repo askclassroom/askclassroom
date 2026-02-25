@@ -656,57 +656,64 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     };
 
     return (
-
-
-        <section className="flex flex-col h-[70vh]">
-            <section className="flex gap-8 max-sm:flex-col">
+        <section className="flex flex-col h-[70vh] gap-5">
+            <section className="flex gap-6 max-sm:flex-col">
+                {/* Companion Panel */}
                 <div className="companion-section flex flex-col h-full min-h-75 flex-1">
-                    <div className="flex items-center justify-between mb-4">
-                        <p className="font-bold text-2xl">{name}</p>
+                    {/* Header row */}
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <p className="font-bold text-xl">{name}</p>
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 capitalize">{subject}</span>
+                        </div>
 
-                        {/* Media Mode Toggle */}
-                        <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                        {/* Controls toolbar */}
+                        <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-xl p-1">
                             {/* Real Time Examples Button */}
                             <button
                                 onClick={handleGenerateExamples}
                                 disabled={isGeneratingExamples}
                                 className={cn(
-                                    "flex items-center gap-2 px-3 py-1.5 rounded-md transition-all mr-2",
-                                    "bg-blue-100 text-blue-700 hover:bg-blue-200 shadow-sm"
+                                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-xs font-medium",
+                                    "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
                                 )}
                                 title="Generate real-time examples based on your session so far"
                             >
-                                <Lightbulb className="w-4 h-4" />
-                                <span className="text-sm font-medium whitespace-nowrap hidden sm:inline">Real Time Examples</span>
+                                <Lightbulb className="w-3.5 h-3.5" />
+                                <span className="whitespace-nowrap hidden sm:inline">Examples</span>
                             </button>
+
+                            <div className="w-px h-5 bg-gray-200 mx-0.5" />
+
                             <button
                                 onClick={() => setMediaMode('photo')}
                                 className={cn(
-                                    "flex items-center gap-2 px-3 py-1.5 rounded-md transition-all",
+                                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-xs font-medium",
                                     mediaMode === 'photo'
-                                        ? "bg-white shadow-sm text-primary"
-                                        : "text-gray-600 hover:text-gray-900"
+                                        ? "bg-white shadow-sm text-gray-900 border border-gray-200"
+                                        : "text-gray-500 hover:text-gray-800 hover:bg-white/70"
                                 )}
                             >
-                                <ImageIcon className="w-4 h-4" />
-                                <span className="text-sm font-medium">Photos</span>
+                                <ImageIcon className="w-3.5 h-3.5" />
+                                <span>Photos</span>
                             </button>
                             <button
                                 onClick={() => setMediaMode('video')}
                                 className={cn(
-                                    "flex items-center gap-2 px-3 py-1.5 rounded-md transition-all",
+                                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-xs font-medium",
                                     mediaMode === 'video'
-                                        ? "bg-white shadow-sm text-primary"
-                                        : "text-gray-600 hover:text-gray-900"
+                                        ? "bg-white shadow-sm text-gray-900 border border-gray-200"
+                                        : "text-gray-500 hover:text-gray-800 hover:bg-white/70"
                                 )}
                             >
-                                <Film className="w-4 h-4" />
-                                <span className="text-sm font-medium">Videos</span>
+                                <Film className="w-3.5 h-3.5" />
+                                <span>Videos</span>
                             </button>
                         </div>
                     </div>
 
-                    <div className="w-full flex-1 relative min-h-75">
+                    {/* Media area */}
+                    <div className="w-full flex-1 relative min-h-75 rounded-2xl overflow-hidden">
                         <ImageCarousel
                             companionName={name}
                             subject={subject}
@@ -726,126 +733,151 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                     </div>
                 </div>
 
-                <div className="user-section">
-                    <div className="user-avatar">
-                        <Image src={userImage} alt={userName} width={130} height={130} className="rounded-lg" />
-                        <p className="font-bold text-2xl">
-                            {userName}
-                        </p>
-                    </div>
-                    <button className="btn-mic" onClick={toggleMicrophone} disabled={callStatus !== CallStatus.ACTIVE}>
-                        <Image src={isMuted ? '/icons/mic-off.svg' : '/icons/mic-on.svg'} alt="mic" width={36} height={36} />
-                        <p className="max-sm:hidden">
-                            {isMuted ? 'Turn on microphone' : 'Turn off microphone'}
-                        </p>
-                    </button>
-                    <button
-                        className={cn(
-                            'rounded-lg py-2 cursor-pointer transition-colors w-full text-white',
-                            callStatus === CallStatus.ACTIVE ? 'bg-red-700' : 'bg-primary',
-                            callStatus === CallStatus.CONNECTING && 'animate-pulse'
-                        )}
-                        onClick={callStatus === CallStatus.ACTIVE ? handleDisconnect : handleCall}
-                    >
-                        {callStatus === CallStatus.ACTIVE
-                            ? "End Session"
-                            : callStatus === CallStatus.CONNECTING
-                                ? 'Connecting'
-                                : 'Start Session'}
-                    </button>
-                </div>
-            </section>
-
-            {/* Whiteboard Animation Section */}
-            {/* Whiteboard Animation Section */}
-            {/* Whiteboard Animation Section - SIMPLIFIED */}
-            <section className="mt-8 flex-1 flex flex-col min-h-0">
-                <div className="whiteboard-container">
-                    <div className="whiteboard-header">
-                        <span className="whiteboard-title">{name} is explaining:</span>
-                        <span className={cn("whiteboard-status", isSpeaking && "speaking")}>
-                            {isSpeaking ? (
-                                <>
-                                    <span className="relative flex h-2.5 w-2.5">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
-                                    </span>
-                                    Speaking
-                                </>
-                            ) : '⚪ Listening'}
-                        </span>
-                    </div>
-
-                    <div className="whiteboard-content" ref={wordsContainerRef}>
-                        {/* Completed sentences */}
-                        {completedSentences.length > 0 && (
-                            <div className="words-wrapper">
-                                {completedSentences.map((sentence, sentenceIndex) => (
-                                    <div key={`completed-${sentenceIndex}`} className="completed-sentence">
-                                        {sentence.split(' ').map((word, wordIndex) => (
-                                            <span key={`${sentenceIndex}-${wordIndex}`} className="word-completed">
-                                                {word}{' '}
-                                            </span>
-                                        ))}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Live words being spoken */}
-                        {liveWords.length > 0 && (
-                            <div className="words-wrapper live-sentence">
-                                {liveWords.map((word, index) => {
-                                    // Determine word state
-                                    let wordClass = 'word-live';
-                                    if (word.isActive) {
-                                        wordClass = 'word-active';
-                                    } else if (index < liveWords.length - 1) {
-                                        wordClass = 'word-spoken';
-                                    } else {
-                                        wordClass = 'word-upcoming';
-                                    }
-
-                                    return (
-                                        <span key={word.id} className={wordClass}>
-                                            {word.text}{' '}
+                {/* Whiteboard — 50% side by side with companion */}
+                <div className="flex-1 flex flex-col min-h-75">
+                    <div className="whiteboard-container h-full">
+                        <div className="whiteboard-header">
+                            <span className="whiteboard-title">{name} is explaining:</span>
+                            <span className={cn("whiteboard-status", isSpeaking && "speaking")}>
+                                {isSpeaking ? (
+                                    <>
+                                        <span className="relative flex h-2.5 w-2.5">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
                                         </span>
-                                    );
-                                })}
-                                {/* Add blinking cursor when speaking */}
-                                {isSpeaking && <span className="speaking-cursor"></span>}
-                            </div>
-                        )}
+                                        Speaking
+                                    </>
+                                ) : '⚪ Listening'}
+                            </span>
+                        </div>
 
-                        {/* Placeholder when no content */}
-                        {completedSentences.length === 0 && liveWords.length === 0 && (
-                            <div className="whiteboard-placeholder">
-                                {callStatus === CallStatus.ACTIVE
-                                    ? '✨ Waiting for AI response...'
-                                    : '🎓 Click "Start Session" to begin'}
-                            </div>
-                        )}
+                        <div className="whiteboard-content" ref={wordsContainerRef}>
+                            {/* Completed sentences */}
+                            {completedSentences.length > 0 && (
+                                <div className="words-wrapper">
+                                    {completedSentences.map((sentence, sentenceIndex) => (
+                                        <div key={`completed-${sentenceIndex}`} className="completed-sentence">
+                                            {sentence.split(' ').map((word, wordIndex) => (
+                                                <span key={`${sentenceIndex}-${wordIndex}`} className="word-completed">
+                                                    {word}{' '}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Live words being spoken */}
+                            {liveWords.length > 0 && (
+                                <div className="words-wrapper live-sentence">
+                                    {liveWords.map((word, index) => {
+                                        let wordClass = 'word-live';
+                                        if (word.isActive) {
+                                            wordClass = 'word-active';
+                                        } else if (index < liveWords.length - 1) {
+                                            wordClass = 'word-spoken';
+                                        } else {
+                                            wordClass = 'word-upcoming';
+                                        }
+                                        return (
+                                            <span key={word.id} className={wordClass}>
+                                                {word.text}{' '}
+                                            </span>
+                                        );
+                                    })}
+                                    {isSpeaking && <span className="speaking-cursor"></span>}
+                                </div>
+                            )}
+
+                            {/* Placeholder when no content */}
+                            {completedSentences.length === 0 && liveWords.length === 0 && (
+                                <div className="whiteboard-placeholder">
+                                    {callStatus === CallStatus.ACTIVE
+                                        ? '✨ Waiting for AI response...'
+                                        : '🎓 Click "Start Session" to begin'}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Transcript Section */}
-            {/* <section className="transcript mt-4">
-                <div className="transcript-message no-scrollbar">
-                    {messages.map((message, index) => (
-                        <p key={index} className={cn(
-                            "max-sm:text-sm",
-                            message.role === 'assistant' ? 'text-gray-700' : 'text-primary'
-                        )}>
-                            {message.role === 'assistant'
-                                ? `${name.split(' ')[0]}: ${message.content}`
-                                : `${userName}: ${message.content}`
-                            }
-                        </p>
-                    ))}
+            {/* Row 2 — User section centered */}
+            <section className="flex justify-center">
+                <div className="flex items-center gap-0 w-full max-w-3xl bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+
+                    {/* User info — left side */}
+                    <div className="flex items-center gap-4 px-6 py-4 shrink-0">
+                        <div className="relative">
+                            <Image src={userImage} alt={userName} width={52} height={52} className="rounded-xl object-cover" />
+                            <span className={cn(
+                                'absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white',
+                                callStatus === CallStatus.ACTIVE
+                                    ? 'bg-green-500'
+                                    : callStatus === CallStatus.CONNECTING
+                                        ? 'bg-yellow-400 animate-pulse'
+                                        : 'bg-gray-300'
+                            )} />
+                        </div>
+                        <div className="flex flex-col">
+                            <p className="font-semibold text-sm text-gray-900 leading-tight">{userName}</p>
+                            <span className={cn(
+                                'text-xs font-medium mt-0.5',
+                                callStatus === CallStatus.ACTIVE
+                                    ? 'text-green-600'
+                                    : callStatus === CallStatus.CONNECTING
+                                        ? 'text-yellow-600'
+                                        : 'text-gray-400'
+                            )}>
+                                {callStatus === CallStatus.ACTIVE ? 'In Session' : callStatus === CallStatus.CONNECTING ? 'Connecting…' : 'Idle'}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="w-px self-stretch bg-gray-100" />
+
+                    {/* Buttons — take remaining space */}
+                    <div className="flex flex-col gap-2 flex-1 px-6 py-4">
+                        {/* Mic button */}
+                        <button
+                            className={cn(
+                                'flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border text-sm font-medium transition-all',
+                                callStatus !== CallStatus.ACTIVE
+                                    ? 'border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed opacity-60'
+                                    : isMuted
+                                        ? 'border-red-200 text-red-600 bg-red-50 hover:bg-red-100'
+                                        : 'border-gray-200 text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300'
+                            )}
+                            onClick={toggleMicrophone}
+                            disabled={callStatus !== CallStatus.ACTIVE}
+                        >
+                            <Image src={isMuted ? '/icons/mic-off.svg' : '/icons/mic-on.svg'} alt="mic" width={16} height={16} />
+                            {isMuted ? 'Unmute mic' : 'Mute mic'}
+                        </button>
+
+                        {/* Session button */}
+                        <button
+                            className={cn(
+                                'w-full py-2.5 rounded-xl text-white font-semibold text-sm transition-all',
+                                callStatus === CallStatus.ACTIVE
+                                    ? 'bg-red-600 hover:bg-red-700'
+                                    : 'bg-gray-900 hover:bg-gray-700',
+                                callStatus === CallStatus.CONNECTING && 'animate-pulse cursor-not-allowed opacity-80'
+                            )}
+                            onClick={callStatus === CallStatus.ACTIVE ? handleDisconnect : handleCall}
+                            disabled={callStatus === CallStatus.CONNECTING}
+                        >
+                            {callStatus === CallStatus.ACTIVE
+                                ? 'End Session'
+                                : callStatus === CallStatus.CONNECTING
+                                    ? 'Connecting…'
+                                    : 'Start Session'}
+                        </button>
+                    </div>
                 </div>
-                <div className="transcript-fade" />
-            </section> */}
+            </section>
+
             {/* Quiz Modal */}
             {showQuizModal && generatedQuiz && (
                 <QuizModal
