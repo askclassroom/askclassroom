@@ -174,6 +174,7 @@
 // export default CompanionComponent
 
 'use client';
+import { useQuery } from '@tanstack/react-query';
 
 import { useEffect, useRef, useState } from 'react'
 import { cn, configureAssistant, getSubjectColor } from "@/lib/utils";
@@ -189,9 +190,10 @@ import { generateQuizFromTranscript, saveQuiz, getQuizBySessionId } from '@/lib/
 import { completeLearningSession } from '@/lib/actions/dashboard.actions';
 import { generateRealTimeExamples } from '@/lib/actions/companion.actions';
 import { ImageCarousel } from './ImageCarousel';
-import { Film, Image as ImageIcon, Lightbulb } from 'lucide-react';
+import { Image as ImageIcon, Lightbulb, Play, ExternalLink, Loader2 as Spinner } from 'lucide-react';
 import { RealTimeExamplesModal } from './RealTimeExamplesModal';
 import { generateKeywordsFromRecentTranscript } from "@/lib/actions/companion.actions";
+import { getCompanionVideos } from '@/lib/actions/companion.actions';
 
 enum CallStatus {
     INACTIVE = 'INACTIVE',
@@ -206,14 +208,167 @@ interface DisplayWord {
     isActive: boolean;
 }
 
-type MediaMode = 'photo' | 'video';
+// Video card state
+interface VideoCardItem {
+    id: string;
+    title: string;
+    thumbnail: string;
+    channelTitle: string;
+}
+
+/* ─────────────────────────────────────────────────────────
+   VideoRowSection — horizontal scroll row of YouTube cards
+   ───────────────────────────────────────────────────────── */
+function VideoRowSection({
+    videos,
+    isLoading,
+    topic,
+    subject,
+}: {
+    videos: VideoCardItem[];
+    isLoading: boolean;
+    topic: string;
+    subject: string;
+}) {
+    const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+
+    if (!isLoading && videos.length === 0) return null;
+
+    return (
+        <section className="w-full">
+            {/* Section header */}
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-red-100">
+                        <Play className="w-3.5 h-3.5 text-red-600 fill-red-600" />
+                    </span>
+                    <h3 className="font-semibold text-sm text-gray-800">
+                        Videos for <span className="text-primary capitalize">{topic || subject}</span>
+                    </h3>
+                </div>
+                {isLoading && (
+                    <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <Spinner className="w-3.5 h-3.5 animate-spin" />
+                        Fetching videos…
+                    </span>
+                )}
+            </div>
+
+            {/* Horizontal card scroll row */}
+            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar snap-x snap-mandatory">
+
+                {/* Skeleton cards while loading */}
+                {isLoading && videos.length === 0 &&
+                    Array.from({ length: 5 }).map((_, i) => (
+                        <div
+                            key={i}
+                            className="flex-none w-52 snap-start rounded-xl overflow-hidden bg-gray-100 animate-pulse"
+                        >
+                            <div className="h-[116px] bg-gray-200" />
+                            <div className="p-2.5 space-y-2">
+                                <div className="h-3 bg-gray-200 rounded w-11/12" />
+                                <div className="h-3 bg-gray-200 rounded w-2/3" />
+                                <div className="h-2.5 bg-gray-200 rounded w-1/2 mt-1" />
+                            </div>
+                        </div>
+                    ))
+                }
+
+                {/* Actual video cards */}
+                {videos.map((video) => (
+                    <div
+                        key={video.id}
+                        className="flex-none w-52 snap-start rounded-xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                        onClick={() => setActiveVideoId(video.id)}
+                    >
+                        {/* Thumbnail */}
+                        <div className="relative h-[116px] overflow-hidden bg-gray-100">
+                            {video.thumbnail ? (
+                                <img
+                                    src={video.thumbnail}
+                                    alt={video.title}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                            ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                                    <Play className="w-8 h-8 text-gray-400" />
+                                </div>
+                            )}
+                            {/* Play overlay */}
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                                    <Play className="w-5 h-5 text-gray-900 fill-gray-900 ml-0.5" />
+                                </div>
+                            </div>
+                            {/* YouTube badge */}
+                            <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">
+                                YT
+                            </div>
+                        </div>
+                        {/* Info */}
+                        <div className="p-2.5">
+                            <p className="text-xs font-semibold text-gray-900 line-clamp-2 leading-snug">
+                                {video.title}
+                            </p>
+                            <p className="text-[11px] text-gray-400 mt-1 truncate">{video.channelTitle}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Embedded video player modal */}
+            {activeVideoId && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+                    onClick={() => setActiveVideoId(null)}
+                >
+                    <div
+                        className="relative w-full max-w-3xl bg-black rounded-2xl overflow-hidden shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Close button */}
+                        <button
+                            onClick={() => setActiveVideoId(null)}
+                            className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                            aria-label="Close video"
+                        >
+                            ✕
+                        </button>
+                        {/* Open on YouTube link */}
+                        <a
+                            href={`https://www.youtube.com/watch?v=${activeVideoId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="absolute top-3 left-3 z-10 flex items-center gap-1 text-xs text-white/80 hover:text-white bg-black/40 px-2.5 py-1.5 rounded-full transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <ExternalLink className="w-3 h-3" />
+                            Open in YouTube
+                        </a>
+                        {/* iFrame player */}
+                        <div className="aspect-video">
+                            <iframe
+                                src={`https://www.youtube.com/embed/${activeVideoId}?autoplay=1&modestbranding=1&rel=0`}
+                                title="YouTube video"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="w-full h-full"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+        </section>
+    );
+}
 
 const CompanionComponent = ({ companionId, subject, topic, name, userName, userImage, style, voice }: CompanionComponentProps) => {
+
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [messages, setMessages] = useState<SavedMessage[]>([]);
-    const [mediaMode, setMediaMode] = useState<MediaMode>('photo');
+    // mediaMode kept minimal – companion panel always shows image carousel
     const currentSessionIdRef = useRef<string | null>(null);
     // Add these states
     const [showQuizModal, setShowQuizModal] = useState(false);
@@ -243,6 +398,10 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     const keywordIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const [currentTranscriptKeyword, setCurrentTranscriptKeyword] = useState<string>("");
     const isGeneratingKeywordRef = useRef<boolean>(false);
+
+    // const [videos, setVideos] = useState<any[]>([]);
+    // const [isLoadingVideos, setIsLoadingVideos] = useState(false);
+    // const hasFetchedVideos = useRef(false);
 
     // Add this function to get recent transcript context
     const getRecentTranscriptContext = (): string => {
@@ -279,7 +438,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                 // Trigger media refresh in ImageCarousel
                 // We'll use a custom event to communicate with ImageCarousel
                 const event = new CustomEvent('transcriptKeywordUpdate', {
-                    detail: { keyword, isVideoMode: mediaMode === 'video' }
+                    detail: { keyword, isVideoMode: false }
                 });
                 window.dispatchEvent(event);
             }
@@ -289,6 +448,51 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             isGeneratingKeywordRef.current = false;
         }
     };
+
+    // Add this effect to fetch videos when component mounts
+    // useEffect(() => {
+    //     const fetchVideos = async () => {
+    //         if (hasFetchedVideos.current) return;
+
+    //         setIsLoadingVideos(true);
+    //         try {
+    //             console.log('🎬 Fetching companion videos...');
+    //             const companionVideos = await getCompanionVideos(name, subject, topic);
+    //             setVideos(companionVideos);
+    //             hasFetchedVideos.current = true;
+    //             console.log(`✅ Loaded ${companionVideos.length} videos`);
+    //         } catch (error) {
+    //             console.error('❌ Failed to fetch videos:', error);
+    //         } finally {
+    //             setIsLoadingVideos(false);
+    //         }
+    //     };
+
+    //     fetchVideos();
+    // }, [name, subject, topic]);
+
+    const {
+        data: videos = [],
+        isLoading: isLoadingVideos,
+        error: videosError
+    } = useQuery({
+        queryKey: ['companionVideos', companionId, name, subject, topic], // Unique cache key
+        queryFn: () => getCompanionVideos(name, subject, topic),
+        staleTime: 1000 * 60 * 60 * 24, // 24 hours - don't refetch
+        gcTime: 1000 * 60 * 60 * 24, // 24 hours - keep in cache
+        refetchOnWindowFocus: false, // Don't refetch when tab gains focus
+        refetchOnMount: false, // Don't refetch when component remounts
+    });
+
+    // Optional: Log for debugging
+    useEffect(() => {
+        if (videos.length > 0) {
+            console.log(`✅ React Query loaded ${videos.length} videos (cached or fresh)`);
+        }
+        if (videosError) {
+            console.error('❌ React Query error:', videosError);
+        }
+    }, [videos, videosError]);
 
 
     // Update ref when messages change
@@ -588,7 +792,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                 clearInterval(keywordIntervalRef.current);
             }
         };
-    }, [callStatus, mediaMode]); // Re-run when call status or media mode changes
+    }, [callStatus]); // Re-run when call status changes
 
     // Also generate keyword when new messages arrive (optional, for faster response)
     useEffect(() => {
@@ -686,39 +890,24 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                             <div className="w-px h-5 bg-gray-200 mx-0.5" />
 
                             <button
-                                onClick={() => setMediaMode('photo')}
                                 className={cn(
                                     "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-xs font-medium",
-                                    mediaMode === 'photo'
-                                        ? "bg-white shadow-sm text-gray-900 border border-gray-200"
-                                        : "text-gray-500 hover:text-gray-800 hover:bg-white/70"
+                                    "bg-white shadow-sm text-gray-900 border border-gray-200"
                                 )}
                             >
                                 <ImageIcon className="w-3.5 h-3.5" />
                                 <span>Photos</span>
                             </button>
-                            <button
-                                onClick={() => setMediaMode('video')}
-                                className={cn(
-                                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-xs font-medium",
-                                    mediaMode === 'video'
-                                        ? "bg-white shadow-sm text-gray-900 border border-gray-200"
-                                        : "text-gray-500 hover:text-gray-800 hover:bg-white/70"
-                                )}
-                            >
-                                <Film className="w-3.5 h-3.5" />
-                                <span>Videos</span>
-                            </button>
                         </div>
                     </div>
 
-                    {/* Media area */}
+                    {/* Media area — always shows image carousel */}
                     <div className="w-full flex-1 relative min-h-75 rounded-2xl overflow-hidden">
                         <ImageCarousel
                             companionName={name}
                             subject={subject}
                             topic={topic}
-                            isVideoMode={mediaMode === 'video'}
+                            isVideoMode={false}
                         />
 
                         {/* Lottie Animation overlays the carousel when active */}
@@ -877,6 +1066,14 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                     </div>
                 </div>
             </section>
+
+            {/* Row 3 — YouTube Video Row */}
+            <VideoRowSection
+                videos={videos}
+                isLoading={isLoadingVideos}
+                topic={topic}
+                subject={subject}
+            />
 
             {/* Quiz Modal */}
             {showQuizModal && generatedQuiz && (
