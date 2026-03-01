@@ -5,10 +5,16 @@ import { createSupabaseClient } from "../supabase";
 import { revalidatePath } from "next/cache";
 import { GetAllCompanions, CreateCompanion, SavedMessage } from "@/types";
 import Groq from "groq-sdk";
+import { google } from "googleapis";
 
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
 });
+
+const youtube = google.youtube({
+    version: 'v3',
+    auth: process.env.YOUTUBE_API_KEY
+})
 
 export const getAllCompanions = async ({ limit = 10, page = 1, subject, topic }: GetAllCompanions) => {
     const supabase = createSupabaseClient();
@@ -579,5 +585,148 @@ Example response: "mitochondria cell structure diagram"
         console.error('❌ Error generating keyword from transcript:', error);
         // Fallback to subject+topic if generation fails
         return `${subject} ${topic}`.trim();
+    }
+};
+
+export const generateYouTubeKeywords = async (companionName: string, subject: string, topic: string) => {
+    console.log(`🎬 Generating YouTube keywords for ${companionName} (${subject} - ${topic})...`);
+
+    const prompt = `
+You are an expert at creating YouTube search queries for educational content.
+Based on the following information, generate 5 specific search queries that would yield high-quality educational videos/shorts.
+
+Companion Name: ${companionName}
+Subject: ${subject}
+Topic: ${topic}
+
+Requirements:
+- Generate EXACTLY 5 search queries
+- Each query should be 3-6 words long
+- Focus on visual/demonstrative content (experiments, animations, real-world examples)
+- Include terms like "animation", "explained", "visualization", "demonstration" where appropriate
+- Make them specific enough to get relevant results
+- Return ONLY a JSON object with a "queries" array
+
+Example format:
+{
+  "queries": [
+    "photosynthesis process animation",
+    "how plants make food explained",
+    "chloroplast function 3d visualization",
+    "photosynthesis experiment demonstration",
+    "plant biology educational short"
+  ]
+}
+`;
+
+    try {
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an AI that outputs pure JSON for YouTube search queries."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.3,
+            max_tokens: 200,
+            response_format: { type: "json_object" }
+        });
+
+        const responseContent = completion.choices[0]?.message?.content;
+        if (!responseContent) throw new Error('No response from Groq');
+
+        const parsedContent = JSON.parse(responseContent);
+        console.log('✅ YouTube keywords generated:', parsedContent.queries);
+        return parsedContent as { queries: string[] };
+    } catch (error) {
+        console.error('❌ Error generating YouTube keywords:', error);
+        // Fallback queries
+        return {
+            queries: [
+                `${subject} ${topic} explained`,
+                `${subject} ${topic} animation`,
+                `${subject} ${topic} demonstration`,
+                `${subject} ${topic} for students`,
+                `${subject} ${topic} visualization`
+            ]
+        };
+    }
+};
+
+/**
+ * Fetch YouTube videos based on search query
+ * @param duration 'short' (< 4 min), 'medium' (4-20 min), or 'any'
+ */
+export const fetchYouTubeVideos = async (
+    query: string,
+    maxResults: number = 5,
+    duration: 'short' | 'medium' | 'any' = 'short'
+) => {
+    try {
+        const response = await youtube.search.list({
+            part: ['snippet'],
+            q: query,
+            type: ['video'],
+            maxResults: maxResults,
+            videoDuration: duration,
+            relevanceLanguage: 'en',
+            videoEmbeddable: 'true' as any,
+            videoDefinition: duration === 'medium' ? 'high' : undefined, // HD for full videos
+        });
+
+        const videos = (response.data.items ?? []).map(item => ({
+            id: item.id?.videoId ?? '',
+            title: item.snippet?.title ?? '',
+            description: item.snippet?.description ?? '',
+            thumbnail: item.snippet?.thumbnails?.high?.url ?? item.snippet?.thumbnails?.default?.url ?? '',
+            channelTitle: item.snippet?.channelTitle ?? '',
+            publishedAt: item.snippet?.publishedAt ?? '',
+        })).filter(v => v.id); // discard items without a valid videoId
+
+        console.log(`📹 Found ${videos.length} ${duration} videos for query: "${query}"`);
+        return videos;
+    } catch (error) {
+        console.error('Error fetching YouTube videos:', error);
+        return [];
+    }
+};
+
+/**
+ * Get educational videos for companion.
+ * Fetches a mix of short reels AND medium-length high-quality videos.
+ */
+export const getCompanionVideos = async (companionName: string, subject: string, topic: string) => {
+    console.log(`🎥 Getting videos for ${companionName} (${subject} – ${topic})...`);
+
+    try {
+        // Step 1: Generate AI-powered search queries
+        const { queries } = await generateYouTubeKeywords(companionName, subject, topic);
+
+        // Step 2: Fetch short reels (first 2 queries) + medium quality videos (next 2 queries)
+        const shortQueries = queries.slice(0, 2);
+        const mediumQueries = queries.slice(2, 4);
+
+        const [shortResults, mediumResults] = await Promise.all([
+            Promise.all(shortQueries.map(q => fetchYouTubeVideos(q, 4, 'short'))),
+            Promise.all(mediumQueries.map(q => fetchYouTubeVideos(q, 3, 'medium'))),
+        ]);
+
+        // Step 3: Merge, deduplicate by video ID
+        const allVideos = [...shortResults.flat(), ...mediumResults.flat()];
+        const uniqueVideos = Array.from(
+            new Map(allVideos.map(video => [video.id, video])).values()
+        );
+
+        console.log(`✅ Found ${uniqueVideos.length} unique videos (shorts + HD)`);
+        return uniqueVideos.slice(0, 12); // Return up to 12 unique videos
+
+    } catch (error) {
+        console.error('❌ Error getting companion videos:', error);
+        return [];
     }
 };
