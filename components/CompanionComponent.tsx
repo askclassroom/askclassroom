@@ -174,6 +174,7 @@
 // export default CompanionComponent
 
 'use client';
+import { useQuery } from '@tanstack/react-query';
 
 import { useEffect, useRef, useState } from 'react'
 import { cn, configureAssistant, getSubjectColor } from "@/lib/utils";
@@ -398,9 +399,9 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     const [currentTranscriptKeyword, setCurrentTranscriptKeyword] = useState<string>("");
     const isGeneratingKeywordRef = useRef<boolean>(false);
 
-    const [videos, setVideos] = useState<any[]>([]);
-    const [isLoadingVideos, setIsLoadingVideos] = useState(false);
-    const hasFetchedVideos = useRef(false);
+    // const [videos, setVideos] = useState<any[]>([]);
+    // const [isLoadingVideos, setIsLoadingVideos] = useState(false);
+    // const hasFetchedVideos = useRef(false);
 
     // Add this function to get recent transcript context
     const getRecentTranscriptContext = (): string => {
@@ -449,26 +450,49 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     };
 
     // Add this effect to fetch videos when component mounts
+    // useEffect(() => {
+    //     const fetchVideos = async () => {
+    //         if (hasFetchedVideos.current) return;
+
+    //         setIsLoadingVideos(true);
+    //         try {
+    //             console.log('🎬 Fetching companion videos...');
+    //             const companionVideos = await getCompanionVideos(name, subject, topic);
+    //             setVideos(companionVideos);
+    //             hasFetchedVideos.current = true;
+    //             console.log(`✅ Loaded ${companionVideos.length} videos`);
+    //         } catch (error) {
+    //             console.error('❌ Failed to fetch videos:', error);
+    //         } finally {
+    //             setIsLoadingVideos(false);
+    //         }
+    //     };
+
+    //     fetchVideos();
+    // }, [name, subject, topic]);
+
+    const {
+        data: videos = [],
+        isLoading: isLoadingVideos,
+        error: videosError
+    } = useQuery({
+        queryKey: ['companionVideos', companionId, name, subject, topic], // Unique cache key
+        queryFn: () => getCompanionVideos(name, subject, topic),
+        staleTime: 1000 * 60 * 60 * 24, // 24 hours - don't refetch
+        gcTime: 1000 * 60 * 60 * 24, // 24 hours - keep in cache
+        refetchOnWindowFocus: false, // Don't refetch when tab gains focus
+        refetchOnMount: false, // Don't refetch when component remounts
+    });
+
+    // Optional: Log for debugging
     useEffect(() => {
-        const fetchVideos = async () => {
-            if (hasFetchedVideos.current) return;
-
-            setIsLoadingVideos(true);
-            try {
-                console.log('🎬 Fetching companion videos...');
-                const companionVideos = await getCompanionVideos(name, subject, topic);
-                setVideos(companionVideos);
-                hasFetchedVideos.current = true;
-                console.log(`✅ Loaded ${companionVideos.length} videos`);
-            } catch (error) {
-                console.error('❌ Failed to fetch videos:', error);
-            } finally {
-                setIsLoadingVideos(false);
-            }
-        };
-
-        fetchVideos();
-    }, [name, subject, topic]);
+        if (videos.length > 0) {
+            console.log(`✅ React Query loaded ${videos.length} videos (cached or fresh)`);
+        }
+        if (videosError) {
+            console.error('❌ React Query error:', videosError);
+        }
+    }, [videos, videosError]);
 
 
     // Update ref when messages change
