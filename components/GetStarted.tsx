@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 
 const GetStarted = () => {
     return (
@@ -35,10 +36,11 @@ const GetStarted = () => {
                         placeholder="Enter your email"
                         className="w-full sm:w-[350px] px-5 py-3 rounded-full border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#02AAA0]"
                     />
-
-                    <button className="bg-[#02AAA0] text-white px-6 py-3 rounded-full font-medium shadow-md hover:scale-105 transition">
-                        Sign Up
-                    </button>
+                    <Link href="/sign-in">
+                        <button className="bg-[#02AAA0] text-white px-6 py-3 rounded-full font-medium shadow-md hover:scale-105 transition cursor-pointer">
+                            Sign Up
+                        </button>
+                    </Link>
 
                 </div>
             </div>

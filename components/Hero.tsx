@@ -88,6 +88,7 @@
 import React from "react";
 import Image from "next/image";
 import HeroCardSection from "./HeroCardSection";
+import Link from "next/link";
 
 const Hero = () => {
     return (
@@ -109,22 +110,24 @@ const Hero = () => {
                         </span>
 
                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#2c2c2c] leading-tight max-w-2xl">
-                            Upgrade your skills and knowledge with our online course.
+                            The Future of Learning Starts with AI Tutors
                         </h1>
 
                         <p className="text-gray-600 text-lg max-w-xl">
-                            Ligula porta non finibus class eleifend mollis aliquam.
-                            Natoque maecenas ut arcu scelerisque si rhoncus est tortor ultrices.
-                            Posuere euismod felis proin interdum justo risus.
+                            Experience real-time voice tutoring, interactive whiteboards, and
+                            AI-powered quizzes designed to make learning clearer, faster, and
+                            more engaging than ever before.
                         </p>
 
                         <div className="flex gap-4">
-                            <button className="bg-[#02AAA0] text-white px-8 py-4 rounded-xl font-medium shadow-lg hover:scale-105 transition">
-                                Explore Course
-                            </button>
-                            <button className="border-2 border-[#02AAA0] text-[#02AAA0] px-8 py-4 rounded-xl font-medium hover:bg-[#02AAA0] hover:text-white transition">
+                            <Link href="/companions">
+                                <button className="bg-[#02AAA0] text-white px-8 py-4 rounded-xl font-medium shadow-lg hover:scale-105 transition cursor-pointer">
+                                    Explore Companions
+                                </button>
+                            </Link>
+                            {/* <button className="border-2 border-[#02AAA0] text-[#02AAA0] px-8 py-4 rounded-xl font-medium hover:bg-[#02AAA0] hover:text-white transition cursor-pointer">
                                 Discover More
-                            </button>
+                            </button> */}
                         </div>
                     </div>
 
