@@ -10,6 +10,7 @@ import GetStarted from '@/components/GetStarted'
 import PricingComponent from '@/components/PricingComponent'
 import FAQSection from '@/components/FAQSection'
 import Footer from '@/components/Footer'
+import Teams from '@/components/Teams'
 
 const Page = async () => {
     return (
@@ -20,6 +21,7 @@ const Page = async () => {
             <GetStarted />
             <PricingComponent />
             <FAQSection />
+            <Teams />
             <Footer />
         </div>
     )
