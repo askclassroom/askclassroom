@@ -1,40 +1,114 @@
-# AskClassroom - Product Details
+# TutorTalkAI (AskClassroom) — Product Details
 
-## What is AskClassroom?
-AskClassroom is a modern, interactive AI-powered educational platform built with Next.js. It allows users to engage in real-time voice conversations with AI "Companions" (tutors) specialized in various subjects and topics. The platform aims to simulate a one-on-one tutoring experience through voice interactions and real-time visual feedback.
+## What is TutorTalkAI?
+TutorTalkAI is a modern, AI-powered educational platform built with Next.js. It connects students with AI "Companions" (virtual tutors) specialized in various subjects and topics. Each session is a live, voice-driven one-on-one tutoring experience enriched with real-time visuals, contextual media, auto-generated quizzes, and curated YouTube videos — all in one place.
 
-## How we are working (Architecture & Tech Stack)
-The application is built using a robust, modern web development stack:
-- **Framework:** Next.js 14+ (App Router) with React 19.
-- **Styling & UI:** Tailwind CSS, Radix UI primitives, lucide-react icons, and Framer Motion for sleek animations.
-- **Voice AI Integration:** Powered by `vapi-ai` for low-latency, real-time voice conversations with the AI.
-- **Authentication:** Secured user authentication and management using Clerk (`@clerk/nextjs`).
-- **Database / Backend:** Supabase is utilized for backend data storage and management (sessions, user data).
-- **Form Handling:** `react-hook-form` paired with `zod` for schema validation.
-- **Rich Text & Math:** Integration with `react-markdown` and `katex` for rendering complex mathematical equations and formatted text.
-- **Observability:** Sentry (`@sentry/nextjs`) is integrated for error tracking and performance monitoring.
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 14+ (App Router), React 19 |
+| Styling & UI | Tailwind CSS, Radix UI, Framer Motion, lucide-react |
+| Voice AI | vapi-ai (real-time voice conversations) |
+| LLM / AI | Groq SDK (llama-3.3-70b-versatile) for keyword gen, quiz gen, summaries, examples |
+| Auth | Clerk (`@clerk/nextjs`) |
+| Database | Supabase (sessions, transcripts, bookmarks, companions) |
+| Media | Unsplash API (contextual images), YouTube Data API v3 (educational videos) |
+| Forms | react-hook-form + zod |
+| Markdown / Math | react-markdown, katex |
+| Monitoring | Sentry (`@sentry/nextjs`) |
+
+---
 
 ## Core Features
 
 ### 1. AI Voice Companions
-- **Real-time Voice Chat:** Users can use their microphone to speak directly to AI companions and hear responses in real-time.
-- **Subject-Specific Tutors:** Companions are tailored to specific subjects and topics, each with custom visual avatars and colors.
-- **Session History:** Completed sessions are saved and displayed on the dashboard for users to review their journey.
+- **Real-time voice chat** — speak directly to AI tutors through a microphone; hear responses immediately.
+- **Subject-specific tutors** — each Companion is configured with a subject, topic, teaching style, and voice.
+- **Session history** — every completed session is persisted in Supabase and displayed on the dashboard.
+- **Mute / unmute microphone** — in-session mic toggle with visual status indicator.
 
 ### 2. Interactive Whiteboard Animation
-- **Real-Time Word Sync:** As the AI speaks, words dynamically appear on a "whiteboard" UI.
-- **Live vs. Completed Sentences:** The UI differentiates between the currently spoken sentence (live words) and previously completed sentences.
-- **Audio Visualizers:** Lottie-based soundwave animations give visual feedback when the AI is speaking.
+- **Live word-by-word sync** — words appear dynamically on a whiteboard as the AI speaks.
+- **Active / spoken / upcoming word states** — distinct CSS animations differentiate the current word from completed text.
+- **Speaking cursor** — a blinking cursor shows when the AI is actively speaking.
+- **Lottie soundwave overlay** — an animated soundwave overlays the companion panel while the AI is speaking.
 
-### 3. Live Transcript
-- In addition to the whiteboard, a classic chat transcript is maintained during the call, distinguishing between user and assistant messages for easy reading.
+### 3. Contextual Image Carousel (Companion Panel)
+- **AI-generated Unsplash keywords** — on session start, Groq generates 5 highly visual search keywords based on the companion's subject and topic.
+- **Auto-refreshing images** — while the AI speaks, new images are fetched from Unsplash matching what is currently being discussed (transcript keyword extraction every 10 seconds).
+- **Smooth transitions** — the carousel auto-advances with fade/slide animations.
 
-### 4. Companion Discovery & filtering
-- **Search & Filter:** Users can search for specific companions or filter them by subject using dedicated UI components (`SearchInput.tsx`, `SubjectFilter.tsx`).
-- **Recent Sessions:** Quick access to recently interacted companions on the home page.
+### 4. YouTube Educational Video Row *(NEW)*
+- **Auto-loads on companion open** — no user action required; videos are fetched the moment the companion page loads.
+- **AI-generated search queries** — Groq generates 5 tailored YouTube search queries based on companion name, subject, and topic.
+- **Mixed content** — fetches both:
+  - Short reels / clips (< 4 minutes) for quick overviews.
+  - Medium-length HD videos (4–20 minutes) for deeper learning.
+- **Horizontally scrollable card row** — displayed in a dedicated "Row 3" below the user controls, showing up to 12 unique video cards with thumbnails, titles, and channel names.
+- **Skeleton loading state** — animated placeholder cards display while videos are being fetched.
+- **Inline embedded player modal** — clicking any video card opens a full-screen YouTube embed inside the page; no navigation away.
+- **"Open in YouTube" shortcut** — link inside the modal allows opening the video on YouTube directly.
 
-### 5. Monetization & Access
-- **Subscription Model:** The platform includes a dedicated subscription flow/route, likely for premium AI features or unlimited usage times.
+### 5. Auto-Generated Quiz (Post-Session)
+- **Automatic quiz generation** — immediately after a session ends, a quiz is generated from the session transcript using Groq.
+- **Session-linked** — each quiz is saved to Supabase keyed to its session ID; duplicate generation is prevented.
+- **In-app quiz modal** — a full-featured quiz modal (`QuizModal.tsx`) presents the questions and grades answers.
+- **Quiz history** — quizzes are accessible from the profile / session history page.
 
-### 6. User Journey Tracking
-- A dedicated "My Journey" section allows users to track their learning progress and past interactions.
+### 6. Real-Time Examples (In-Session)
+- **One-click contextual examples** — an "Examples" button in the companion toolbar triggers Groq to generate 3 real-world examples based on the conversation so far.
+- **Markdown-rendered output** — examples are beautifully formatted with headers and bullet points inside a modal (`RealTimeExamplesModal.tsx`).
+
+### 7. Session Transcripts & AI Summaries
+- **Full transcript saving** — every message (user + AI) is stored chronologically in Supabase after the session ends.
+- **AI-generated summary** — Groq auto-generates a concise ≤ 3-sentence summary of what the student learned; saved to the `transcript_summary` column.
+- **PDF download** — users can download the AI summary as a PDF from their profile page.
+- **Transcript viewer** — `SessionTranscript.tsx` component renders the saved transcript with role-based styling.
+
+### 8. Student Dashboard & Learning Analytics
+- **Session duration tracking** — start and end timestamps are recorded; duration is saved per session.
+- **`completeLearningSession`** — logs subject, topic, and duration to the dashboard analytics table.
+- **Journey visualization** — dedicated "My Journey" section for users to track progress over time.
+
+### 9. Companion Discovery & Bookmarks
+- **Search & filter** — search companions by name/topic; filter by subject using `SearchInput` and `SubjectFilter`.
+- **Bookmarks** — users can save favourite companions; bookmark state is stored per user in Supabase.
+- **Recent sessions** — home page surfaces the 10 most recently used companions for quick re-access.
+
+### 10. Companion Creation
+- **Form-based creation** — `CompanionForm.tsx` lets users create their own AI tutors via a guided form (subject, topic, style, voice).
+- **Permission gating** — companion creation is gated by subscription plan (3, 10, or 15 companion limit based on Clerk plan/feature flags).
+
+### 11. Landing Page & Marketing Site *(NEW)*
+- **Hero section** — `Hero.tsx` presents the platform with a headline, feature badge, CTA buttons, and a feature card grid.
+- **Branded navbar** — updated `Navbar.tsx` with the TutorTalkAI logo + tagline ("Support Beyond The Classroom").
+- **Homepage route** — `/homepage` shows popular companions and recently completed sessions alongside a CTA block.
+- **Root page** — `/` now serves the marketing Hero landing page for unauthenticated visitors.
+
+### 12. Access Control & Monetization
+- **Clerk authentication** — sign-in / sign-up protected routes; `SignedIn` / `SignedOut` guards throughout.
+- **Subscription tiers** — plan-based feature gating (e.g. companion creation limits) via Clerk's `has()` API.
+- **Dedicated subscription route** — `/subscription` page for plan upgrades.
+
+---
+
+## Key File Map
+
+| File | Purpose |
+|------|---------|
+| `components/CompanionComponent.tsx` | Core session UI — voice, whiteboard, image carousel, video row, quiz, examples |
+| `components/VideoReel.tsx` | Full-featured video player with prev/next and fullscreen |
+| `components/ImageCarousel.tsx` | Unsplash image carousel with transcript-driven keyword refresh |
+| `components/QuizModal.tsx` | Post-session quiz UI |
+| `components/RealTimeExamplesModal.tsx` | In-session real-time examples modal |
+| `components/Hero.tsx` | Marketing landing page hero section |
+| `components/Navbar.tsx` | Top navigation with TutorTalkAI branding |
+| `lib/actions/companion.actions.ts` | All server actions: companions, sessions, transcripts, Groq AI, YouTube API |
+| `lib/actions/quiz.actions.ts` | Quiz generation, saving, and retrieval |
+| `lib/actions/dashboard.actions.ts` | Learning session analytics |
+| `app/page.tsx` | Root landing page (Hero) |
+| `app/homepage/page.tsx` | Authenticated home with companion discovery |
+| `app/companions/[id]/page.tsx` | Individual companion session page |
