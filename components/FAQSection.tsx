@@ -28,7 +28,7 @@ const FAQSection = () => {
           </span>
 
           <h2 className="text-4xl lg:text-5xl font-bold text-[#2c2c2c] leading-tight max-w-2xl">
-            Helping You Understand Virtura Better
+            Helping You Understand TutorTalkAI Better
           </h2>
 
           {/* Accordion */}

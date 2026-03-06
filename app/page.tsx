@@ -11,15 +11,18 @@ import PricingComponent from '@/components/PricingComponent'
 import FAQSection from '@/components/FAQSection'
 import Footer from '@/components/Footer'
 import Teams from '@/components/Teams'
+import FourWaysToLearn from '@/components/FourWaysToLearn'
 
 const Page = async () => {
     return (
         <div>
             <Hero />
+            <FourWaysToLearn />
             <AboutUs />
             <WhyUs />
             <GetStarted />
             <PricingComponent />
+            {/* <FourWaysToLearn /> */}
             <FAQSection />
             <Teams />
             <Footer />
