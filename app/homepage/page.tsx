@@ -1,4 +1,4 @@
-// Note: auth context comes from clerkMiddleware — no force-dynamic needed
+export const dynamic = 'force-dynamic'
 
 import CompanionCard from '@/components/CompanionCard'
 import CompanionsList from '@/components/CompanionsList'
