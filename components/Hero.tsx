@@ -1,247 +1,162 @@
-"use client";
+// // Hero.tsx - A hero component for Next.js with Tailwind CSS
+// // inspired by the provided Elementor (CourseOn) design.
+// // Uses your font imports (Bricolage Grotesque, Outfit) and custom colors (cta, cta-gold, etc.)
 
-import React, { useEffect, useState } from "react";
+// import React from 'react';
+// import Image from 'next/image';
+// import HeroCardSection from './HeroCardSection';
+
+// const Hero = () => {
+//     // Theme colors from your globals.css (mapped to Tailwind classes)
+//     // primary (oklch(0.205 0 0)) ≈ #343434, we'll use zinc-800
+//     // cta: #2c2c2c, cta-gold: #fccc41
+
+//     return (
+//         <>
+//             {/* FIRST SECTION: Hero with image and text (matches .elementor-element-499faa5e) */}
+//             <section className="relative w-full bg-[#E0F0F0] font-bricolage">
+//                 {/* Background overlay with pattern (like .elementor-element-499faa5e::before) */}
+//                 <div
+//                     className="absolute inset-0 bg-[#E0F0F0]"
+//                     style={{
+//                         backgroundImage: `url('https://shop.creativemox.com/courseon/wp-content/uploads/sites/7/2024/09/bg_img_3b.png')`,
+//                         backgroundPosition: 'bottom left',
+//                         backgroundRepeat: 'no-repeat',
+//                         backgroundSize: 'contain',
+//                         opacity: 0.5, // matches --overlay-opacity: 0.5 from .elementor-398 .elementor-element.elementor-element-499faa5e
+//                     }}
+//                 />
+//                 <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12">
+//                     {/* Left column: text content */}
+//                     <div className="flex-1 space-y-6 text-center lg:text-left">
+//                         {/* Free trial badge */}
+//                         <span className="inline-block font-outfit font-semibold text-sm uppercase tracking-wider text-[#02AAA0] bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
+//                             Free Trial 30 Days
+//                         </span>
+
+//                         {/* Headline */}
+//                         <h1 className="font-bricolage font-bold text-4xl md:text-5xl lg:text-6xl leading-tight text-[#2c2c2c] max-w-3xl">
+//                             Upgrade your skills and knowledge with our online course.
+//                         </h1>
+
+//                         {/* Description */}
+//                         <p className="font-outfit text-lg text-gray-700 max-w-2xl">
+//                             Ligula porta non finibus class eleifend mollis aliquam. Natoque maecenas ut arcu scelerisque si rhoncus est tortor ultrices. Posuere euismod felis proin interdum justo risus.
+//                         </p>
+
+//                         {/* Buttons */}
+//                         <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+//                             <button className="bg-[#2c2c2c] hover:bg-black text-white font-outfit font-medium px-8 py-4 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg">
+//                                 Explore Course
+//                             </button>
+//                             <button className="border-2 border-[#2c2c2c] text-[#2c2c2c] hover:bg-[#2c2c2c] hover:text-white font-outfit font-medium px-8 py-4 rounded-xl transition-all duration-300">
+//                                 Discover more
+//                             </button>
+//                         </div>
+//                     </div>
+
+//                     {/* Right column: image */}
+//                     <div className="flex-1 flex justify-center lg:justify-end">
+//                         <div className="relative w-72 h-96 md:w-80 md:h-[480px] lg:w-96 lg:h-[560px]">
+//                             <Image
+//                                 src='/images/robot-with-clipboard.png'
+//                                 alt="Online course illustration"
+//                                 fill
+//                                 sizes="(max-width: 768px) 100vw, 50vw"
+//                                 className="object-contain drop-shadow-2xl"
+//                                 priority
+//                             />
+//                         </div>
+//                     </div>
+//                 </div>
+//             </section>
+
+//             {/* SECOND SECTION: Feature cards (matches .elementor-element-7a40e166) */}
+//             <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 lg:-mt-24 pb-12 font-bricolage">
+//                 <HeroCardSection />
+//             </section>
+
+//             {/* <HeroCardSection /> */}
+//             {/* Add Material Icons link in your _document.tsx or layout.tsx if not already present */}
+//             {/* <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css" /> */}
+//         </>
+//     );
+// };
+
+// export default Hero;
+
+import React from "react";
 import Image from "next/image";
-import Link from "next/link";
-import ConceptMasteryCard from "./ConceptMasteryCard";
-import LearningStreakCard from "./LearningStreakCard";
-import FractionMasteryCard from "./FractionMasteryCard";
-
-// Animated typing words
-const rotatingWords = ["AI Tutors", "Smart Quizzes", "Voice Learning", "Instant Help"];
+import HeroCardSection from "./HeroCardSection";
 
 const Hero = () => {
-    const [wordIndex, setWordIndex] = useState(0);
-    const [visible, setVisible] = useState(true);
-
-    useEffect(() => {
-        const cycle = setInterval(() => {
-            setVisible(false);
-            setTimeout(() => {
-                setWordIndex((i) => (i + 1) % rotatingWords.length);
-                setVisible(true);
-            }, 400);
-        }, 2800);
-        return () => clearInterval(cycle);
-    }, []);
-
     return (
         <>
             {/* HERO SECTION */}
-            <section className="relative w-full min-h-[90vh] overflow-hidden" style={{ background: "linear-gradient(135deg, #E8F8F7 0%, #F0FBFA 40%, #EBF7FF 100%)" }}>
+            <section className="relative w-full min-h-[90vh] bg-[#E6F4F3] overflow-hidden">
 
-                {/* Animated blob decorations */}
-                <div
-                    className="pointer-events-none absolute -bottom-40 -left-40 w-[600px] h-[600px] opacity-40"
-                    style={{
-                        background: "radial-gradient(circle, #02AAA040, transparent 70%)",
-                        animation: "lp-blob 14s ease-in-out infinite",
-                        borderRadius: "60% 40% 70% 30% / 50% 60% 40% 60%",
-                    }}
-                />
-                <div
-                    className="pointer-events-none absolute -top-40 -right-40 w-[500px] h-[500px] opacity-30"
-                    style={{
-                        background: "radial-gradient(circle, #0284c740, transparent 70%)",
-                        animation: "lp-blob 18s ease-in-out infinite reverse",
-                        borderRadius: "30% 70% 40% 60% / 60% 30% 70% 40%",
-                    }}
-                />
-
-                {/* Grid dots pattern */}
-                <div
-                    className="pointer-events-none absolute inset-0 opacity-30"
-                    style={{
-                        backgroundImage: "radial-gradient(rgba(2,170,160,0.25) 1px, transparent 1px)",
-                        backgroundSize: "32px 32px",
-                    }}
-                />
+                {/* Soft Background Circles */}
+                <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-[#02AAA0]/10 rounded-full blur-3xl" />
+                <div className="absolute -top-32 -right-32 w-[400px] h-[400px] bg-[#02AAA0]/10 rounded-full blur-3xl" />
 
                 {/* Content Wrapper */}
-                <div className="relative w-full px-6 lg:px-20 py-10 pt-16 flex flex-col lg:flex-row items-center justify-between gap-12">
+                <div className="relative w-full px-6 lg:px-20 py-20 flex flex-col lg:flex-row items-center justify-between gap-12">
 
                     {/* LEFT CONTENT */}
-                    <div className="flex-1 space-y-7">
+                    <div className="flex-1 space-y-6">
+                        <span className="inline-block text-sm font-semibold text-[#02AAA0] bg-white px-4 py-2 rounded-full shadow">
+                            FREE TRIAL 30 DAYS
+                        </span>
 
-                        {/* Badge */}
-                        <div
-                            style={{
-                                animation: "lp-badge-pop 0.7s cubic-bezier(0.22,1,0.36,1) 0.1s both",
-                            }}
-                        >
-                            <span
-                                className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-full"
-                                style={{
-                                    background: "white",
-                                    color: "#02AAA0",
-                                    boxShadow: "0 2px 20px rgba(2,170,160,0.18)",
-                                    border: "1px solid rgba(2,170,160,0.2)",
-                                }}
-                            >
-                                <span
-                                    className="inline-block w-2 h-2 rounded-full"
-                                    style={{
-                                        background: "#02AAA0",
-                                        animation: "lp-glow-pulse 2s infinite",
-                                    }}
-                                />
-                                FREE TRIAL — 30 DAYS
-                            </span>
-                        </div>
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#2c2c2c] leading-tight max-w-2xl">
+                            Upgrade your skills and knowledge with our online course.
+                        </h1>
 
-                        {/* Headline */}
-                        <div style={{ animation: "lp-fade-up 0.75s cubic-bezier(0.22,1,0.36,1) 0.2s both" }}>
-                            <h1
-                                className="text-4xl md:text-5xl lg:text-[62px] font-extrabold text-[#1a1a2e] leading-[1.12] max-w-2xl"
-                                style={{ letterSpacing: "-0.025em" }}
-                            >
-                                The Future of
-                                <br />
-                                Learning Starts with
-                                <br />
-                                <span
-                                    style={{
-                                        display: "inline-block",
-                                        background: "linear-gradient(135deg, #02AAA0 0%, #0284c7 100%)",
-                                        WebkitBackgroundClip: "text",
-                                        WebkitTextFillColor: "transparent",
-                                        backgroundClip: "text",
-                                        opacity: visible ? 1 : 0,
-                                        transform: visible ? "translateY(0)" : "translateY(12px)",
-                                        transition: "opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1)",
-                                    }}
-                                >
-                                    {rotatingWords[wordIndex]}
-                                </span>
-                            </h1>
-                        </div>
-
-                        {/* Description */}
-                        <p
-                            className="text-gray-500 text-lg max-w-lg leading-relaxed"
-                            style={{ animation: "lp-fade-up 0.75s cubic-bezier(0.22,1,0.36,1) 0.35s both" }}
-                        >
-                            Experience real-time voice tutoring, interactive whiteboards, and
-                            AI-powered quizzes designed to make learning clearer, faster, and
-                            more engaging than ever before.
+                        <p className="text-gray-600 text-lg max-w-xl">
+                            Ligula porta non finibus class eleifend mollis aliquam.
+                            Natoque maecenas ut arcu scelerisque si rhoncus est tortor ultrices.
+                            Posuere euismod felis proin interdum justo risus.
                         </p>
 
-                        {/* CTA Buttons */}
-                        <div
-                            className="flex flex-wrap gap-4 pt-2"
-                            style={{ animation: "lp-fade-up 0.75s cubic-bezier(0.22,1,0.36,1) 0.45s both" }}
-                        >
-                            <Link href="/companions">
-                                <button
-                                    className="group relative overflow-hidden text-white px-8 py-4 rounded-2xl font-semibold text-sm"
-                                    style={{
-                                        background: "linear-gradient(135deg, #02AAA0, #0284c7)",
-                                        boxShadow: "0 8px 32px rgba(2,170,160,0.4)",
-                                        transition: "transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease",
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-3px) scale(1.03)";
-                                        (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 16px 48px rgba(2,170,160,0.45)";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0) scale(1)";
-                                        (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 32px rgba(2,170,160,0.4)";
-                                    }}
-                                >
-                                    Explore Companions
-                                    <span className="ml-2 inline-block" style={{ transition: "transform 0.2s ease" }}>→</span>
-                                </button>
-                            </Link>
-
-                            <Link href="/my-journey">
-                                <button
-                                    className="px-8 py-4 rounded-2xl font-semibold text-sm border-2 text-[#02AAA0]"
-                                    style={{
-                                        borderColor: "#02AAA0",
-                                        background: "transparent",
-                                        transition: "background 0.25s ease, color 0.25s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1)",
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        const b = e.currentTarget as HTMLButtonElement;
-                                        b.style.background = "#02AAA0";
-                                        b.style.color = "white";
-                                        b.style.transform = "translateY(-3px)";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        const b = e.currentTarget as HTMLButtonElement;
-                                        b.style.background = "transparent";
-                                        b.style.color = "#02AAA0";
-                                        b.style.transform = "translateY(0)";
-                                    }}
-                                >
-                                    My Journey
-                                </button>
-                            </Link>
-                        </div>
-
-                        {/* Trust badges */}
-                        <div
-                            className="flex items-center gap-6 pt-2"
-                            style={{ animation: "lp-fade-up 0.75s cubic-bezier(0.22,1,0.36,1) 0.55s both" }}
-                        >
-                            <div className="flex -space-x-2">
-                                {["#02AAA0", "#0284c7", "#7c3aed", "#e11d48"].map((c, i) => (
-                                    <div
-                                        key={i}
-                                        className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold"
-                                        style={{ background: c, zIndex: 4 - i }}
-                                    >
-                                        {["A", "B", "C", "D"][i]}
-                                    </div>
-                                ))}
-                            </div>
-                            <p className="text-sm text-gray-500">
-                                <span className="font-semibold text-gray-800">500+</span> students already learning
-                            </p>
+                        <div className="flex gap-4">
+                            <button className="bg-[#02AAA0] text-white px-8 py-4 rounded-xl font-medium shadow-lg hover:scale-105 transition">
+                                Explore Course
+                            </button>
+                            <button className="border-2 border-[#02AAA0] text-[#02AAA0] px-8 py-4 rounded-xl font-medium hover:bg-[#02AAA0] hover:text-white transition">
+                                Discover More
+                            </button>
                         </div>
                     </div>
 
                     {/* RIGHT IMAGE */}
-                    <div
-                        className="flex-1 flex justify-center"
-                        style={{ animation: "lp-fade-right 0.9s cubic-bezier(0.22,1,0.36,1) 0.3s both" }}
-                    >
-                        <div className="relative w-[450px] h-[580px] lg:w-[520px] lg:h-[660px]">
+                    <div className="flex-1 relative flex justify-center">
 
-                            {/* Main image with float */}
-                            <div className="lp-float-slow absolute inset-0">
-                                <Image
-                                    src="/images/hero-image-2.png"
-                                    alt="AI Tutor"
-                                    fill
-                                    className="object-contain drop-shadow-2xl"
-                                    priority
-                                    style={{ filter: "drop-shadow(0 20px 60px rgba(2,170,160,0.25))" }}
+                        {/* Dotted Pattern */}
+                        <div className="absolute right-10 top-24 grid grid-cols-6 gap-2 opacity-40">
+                            {Array.from({ length: 36 }).map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="w-2 h-2 bg-[#02AAA0] rounded-full"
                                 />
-                            </div>
+                            ))}
+                        </div>
 
-                            {/* Floating cards */}
-                            <div className="absolute left-6 top-24 lp-float" style={{ animationDelay: "0.5s" }}>
-                                <FractionMasteryCard />
-                            </div>
-
-                            <div className="absolute left-100 -top-23 lp-float-2">
-                                <ConceptMasteryCard />
-                            </div>
-
-                            <div className="absolute right-0 bottom-20 lp-float-3">
-                                <LearningStreakCard />
-                            </div>
+                        <div className="relative w-[400px] h-[520px] lg:w-[500px] lg:h-[650px]">
+                            <Image
+                                src="/images/robot-with-clipboard.png"
+                                alt="Hero Image"
+                                fill
+                                className="object-contain drop-shadow-2xl"
+                                priority
+                            />
                         </div>
                     </div>
                 </div>
+            </section>
 
-                {/* Bottom wave */}
-                <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none">
-                    <svg viewBox="0 0 1440 60" preserveAspectRatio="none" className="w-full h-12" fill="white">
-                        <path d="M0,30 C360,60 1080,0 1440,30 L1440,60 L0,60 Z" />
-                    </svg>
-                </div>
+            {/* CARD SECTION OVERLAP */}
+            <section className="relative -mt-28 px-6 lg:px-20 pb-20">
+                <HeroCardSection />
             </section>
         </>
     );
