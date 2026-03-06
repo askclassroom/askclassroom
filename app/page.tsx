@@ -19,7 +19,7 @@ const Page = async () => {
             <Hero />
             <FourWaysToLearn />
             <AboutUs />
-            <WhyUs />
+            {/* <WhyUs /> */}
             <GetStarted />
             <PricingComponent />
             {/* <FourWaysToLearn /> */}
