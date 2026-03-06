@@ -1,17 +1,31 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
-export default clerkMiddleware();
+// Routes that require authentication
+const isProtectedRoute = createRouteMatcher([
+  '/homepage(.*)',
+  '/companions(.*)',
+  '/my-journey(.*)',
+  '/my-dashboard(.*)',
+]);
+
+export default clerkMiddleware(async (auth, req) => {
+  // Protect authenticated routes — redirects to sign-in if not logged in
+  if (isProtectedRoute(req)) {
+    await auth.protect();
+  }
+});
 
 export const config = {
   matcher: [
     /*
-     * Match all request paths EXCEPT:
-     * - _next (Next.js internals)
-     * - monitoring (Sentry tunnel route - must NOT go through Clerk)
-     * - static files
+     * Match ALL request paths except:
+     * - _next/static (static files)
+     * - _next/image  (image optimization)
+     * - monitoring   (Sentry tunnel — must bypass Clerk)
+     * - favicon.ico
+     * - Public static assets
      */
-    '/((?!_next|monitoring|[^?]*\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    '/((?!_next/static|_next/image|monitoring|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf)$).*)',
   ],
 };

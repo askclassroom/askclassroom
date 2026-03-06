@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic'
+// Note: auth context comes from clerkMiddleware — no force-dynamic needed
 
 import CompanionCard from '@/components/CompanionCard'
 import CompanionsList from '@/components/CompanionsList'
@@ -10,30 +10,30 @@ import { getSubjectColor } from '@/lib/utils'
 import React from 'react'
 
 const Page = async () => {
-  const companions=await getAllCompanions({limit:3});
-  const recentSessionsCompanions=await getRecentSessions(10);
+  const companions = await getAllCompanions({ limit: 3 });
+  const recentSessionsCompanions = await getRecentSessions(10);
   return (
     <main>
       <h1 className='text-2xl underline'>Popular Companions</h1>
-      
+
       <section className='home-section'>
         {companions.map(companion => (
           <CompanionCard
             key={companion.id}
             {...companion}
             color={getSubjectColor(companion.subject)}
-        />
+          />
         ))}
-        
+
       </section>
 
       <section className='home-section'>
-        <CompanionsList 
+        <CompanionsList
           title='Recently completed sessions'
           companions={recentSessionsCompanions}
           classNames='w-2/3 max-lg:-full'
         />
-        <CTA/>
+        <CTA />
       </section>
     </main>
   )
