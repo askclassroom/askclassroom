@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic'
+// Landing page: statically rendered - no server-side auth needed here
 
 import React from 'react'
 import Hero from '@/components/Hero'
