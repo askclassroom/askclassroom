@@ -1,11 +1,8 @@
 export const dynamic = 'force-dynamic'
 
-
-
 import React from 'react'
 import Hero from '@/components/Hero'
 import AboutUs from '@/components/AboutUs'
-import WhyUs from '@/components/WhyUs'
 import GetStarted from '@/components/GetStarted'
 import PricingComponent from '@/components/PricingComponent'
 import FAQSection from '@/components/FAQSection'
@@ -16,7 +13,6 @@ const Page = async () => {
         <div>
             <Hero />
             <AboutUs />
-            <WhyUs />
             <GetStarted />
             <PricingComponent />
             <FAQSection />
