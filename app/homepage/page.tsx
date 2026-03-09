@@ -11,6 +11,7 @@ import {
 } from '@/lib/actions/companion.actions';
 import { SessionsList } from '@/components/SessionsList';
 import { getSubjectColor } from '@/lib/utils';
+import Cta from '@/components/CTA';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -353,7 +354,7 @@ const HomePage = async () => {
                 iconBg="rgba(255,255,255,0.25)"
                 delay={500}
               />
-              <QuickActionCard
+              {/* <QuickActionCard
                 href="/create"
                 icon={
                   <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -365,7 +366,7 @@ const HomePage = async () => {
                 gradient="linear-gradient(135deg,#8b5cf6,#d946ef,#ec4899)"
                 iconBg="rgba(255,255,255,0.25)"
                 delay={600}
-              />
+              /> */}
             </div>
           </div>
 
@@ -388,9 +389,12 @@ const HomePage = async () => {
               )}
             </div>
 
-            {/* Sessions List with glass morphism */}
-            <div className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-2xl border border-white/50 p-6">
-              <SessionsList sessions={recentSessions} />
+            {/* Sessions List + CTA side by side */}
+            <div className="flex gap-6 items-start w-full max-lg:flex-col-reverse max-lg:items-center">
+              <div className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-2xl border border-white/50 p-6 flex-1 max-lg:w-full">
+                <SessionsList sessions={recentSessions} />
+              </div>
+              <Cta />
             </div>
           </div>
         </div>
