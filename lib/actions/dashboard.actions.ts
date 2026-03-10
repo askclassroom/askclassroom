@@ -22,7 +22,7 @@ export type StudentDashboardData = {
     // Parental Controls Data
     platformActiveMinutesToday: number;
     exitAttemptsToday: number;
-    parentalSettings: { parentEmail: string | null; notifyOnExit: boolean } | null;
+    parentalSettings: { parentEmail: string | null; notifyOnExit: boolean; distractionThreshold: number } | null;
     recentExits: { time: string; type: string }[];
 };
 
@@ -290,22 +290,24 @@ const getParentalSettings = async (userId: string) => {
     const supabase = createSupabaseClient();
     const { data } = await supabase
         .from('parental_settings')
-        .select('parent_email, notify_on_exit')
+        .select('parent_email, notify_on_exit, distraction_threshold')
         .eq('user_id', userId)
         .maybeSingle();
 
     return data ? {
         parentEmail: data.parent_email,
-        notifyOnExit: data.notify_on_exit
+        notifyOnExit: data.notify_on_exit,
+        distractionThreshold: data.distraction_threshold || 5
     } : null;
 };
 
-export const updateParentalSettings = async (userId: string, email: string, notify: boolean) => {
+export const updateParentalSettings = async (userId: string, email: string, notify: boolean, threshold: number = 5) => {
     const supabase = createSupabaseClient();
     await supabase.from('parental_settings').upsert({
         user_id: userId,
         parent_email: email,
         notify_on_exit: notify,
+        distraction_threshold: threshold,
         updated_at: new Date().toISOString()
     });
 };

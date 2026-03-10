@@ -61,15 +61,31 @@ export async function POST(req: Request) {
         // 2. Check parental settings for email notification
         const { data: settings } = await supabase
             .from('parental_settings')
-            .select('parent_email, notify_on_exit')
+            .select('parent_email, notify_on_exit, distraction_threshold')
             .eq('user_id', userId)
             .maybeSingle();
 
         if (settings && settings.notify_on_exit && settings.parent_email) {
-            // Send email (don't await it so we return faster to the beacon)
-            sendParentalEmail(settings.parent_email, exitType, path).catch(err => {
-                console.error('Failed to send exit email:', err);
-            });
+            const threshold = settings.distraction_threshold || 5;
+
+            // 3. Count today's exits to see if it meets threshold
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const { count: exitCount } = await supabase
+                .from('platform_exits')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                .gte('created_at', today.toISOString());
+
+            // Only send the email if the exit count is EXACTLY a multiple of the threshold
+            // This prevents spamming on every exit and fulfills "after each X distractions"
+            if (exitCount && exitCount > 0 && exitCount % threshold === 0) {
+                // Send email (don't await it so we return faster to the beacon)
+                sendParentalEmail(settings.parent_email, exitType, path).catch(err => {
+                    console.error('Failed to send exit email:', err);
+                });
+            }
         }
 
         return NextResponse.json({ success: true });

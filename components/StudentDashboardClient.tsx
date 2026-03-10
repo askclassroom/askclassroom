@@ -331,6 +331,7 @@ const StudentDashboardClient = ({ data }: StudentDashboardClientProps) => {
                 onClose={() => setIsParentalModalOpen(false)}
                 initialEmail={parentalSettings?.parentEmail || null}
                 initialNotify={parentalSettings?.notifyOnExit || false}
+                initialThreshold={parentalSettings?.distractionThreshold || 5}
             />
         </motion.div>
     );
