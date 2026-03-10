@@ -390,8 +390,8 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
     const lastProcessedRef = useRef<string>('');
     const messagesRef = useRef<SavedMessage[]>([]);
 
-    // Add state for session timing
-    const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+    // Use ref for session timing so it's always current inside the effect closure
+    const sessionStartTimeRef = useRef<Date | null>(null);
 
     // Inside the CompanionComponent function, add these states:
     const [lastKeywordUpdate, setLastKeywordUpdate] = useState<Date>(new Date());
@@ -601,7 +601,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
 
         const onCallStart = async () => {
             setCallStatus(CallStatus.ACTIVE);
-            setSessionStartTime(new Date());
+            sessionStartTimeRef.current = new Date();
             // Create a new session history entry
             try {
                 const sessionId = await addToSessionHistory(companionId);
@@ -630,19 +630,23 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
             setCallStatus(CallStatus.FINISHED);
 
             const sessionId = currentSessionIdRef.current;
-            // Record session with duration
-            if (sessionStartTime) {
+            // Record session with duration (use ref, not state, to avoid stale closure)
+            const startTime = sessionStartTimeRef.current;
+            if (startTime) {
                 const endedAt = new Date();
-                const durationSeconds = Math.round((endedAt.getTime() - sessionStartTime.getTime()) / 1000);
+                const durationSeconds = Math.round((endedAt.getTime() - startTime.getTime()) / 1000);
+                console.log(`⏱️ Session duration: ${durationSeconds}s`);
 
                 // Save the session with duration
                 completeLearningSession(companionId, subject, topic, durationSeconds);
+            } else {
+                console.warn('⚠️ sessionStartTime was null — duration not recorded');
             }
 
             // Also add to session history for backward compatibility
             addToSessionHistory(companionId);
 
-            setSessionStartTime(null);
+            sessionStartTimeRef.current = null;
             if (sessionId && messagesRef.current.length > 0) {
                 await saveTranscript();
 

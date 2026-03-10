@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { ClerkProvider } from "@clerk/nextjs";
 import QueryProvider from "@/providers/query-provider";
+import { ActivityTracker } from "@/components/ActivityTracker";
 
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
@@ -26,6 +27,7 @@ export default function RootLayout({
         <QueryProvider>
           <ClerkProvider appearance={{ variables: { colorPrimary: '#fe5933' } }}>
             <Navbar />
+            <ActivityTracker />
             {children}
           </ClerkProvider>
         </QueryProvider>

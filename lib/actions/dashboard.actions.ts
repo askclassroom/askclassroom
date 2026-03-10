@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseClient } from "../supabase";
+import { createClient } from "@supabase/supabase-js";
 import { subDays, startOfDay, endOfDay, differenceInDays, format } from "date-fns";
 
 export type StudentDashboardData = {
@@ -18,6 +19,12 @@ export type StudentDashboardData = {
     totalSessionsAllTime: number;
     totalLearningTimeAllTime: number; // in minutes
     favoriteSubject: string;
+
+    // Parental Controls Data
+    platformActiveMinutesToday: number;
+    exitAttemptsToday: number;
+    parentalSettings: { parentEmail: string | null; notifyOnExit: boolean } | null;
+    recentExits: { time: string; type: string }[];
 };
 
 // Calculate learning streak
@@ -244,6 +251,79 @@ const getSubjectsStudiedThisWeek = async (userId: string): Promise<string[]> => 
     return Array.from(subjects);
 };
 
+// Parental Controls Functions
+const getPlatformActiveMinutesToday = async (userId: string): Promise<number> => {
+    const supabase = createSupabaseClient();
+    const today = format(new Date(), 'yyyy-MM-dd');
+
+    const { data } = await supabase
+        .from('daily_learning_stats')
+        .select('platform_active_minutes')
+        .eq('user_id', userId)
+        .eq('date', today)
+        .maybeSingle();
+
+    return data?.platform_active_minutes || 0;
+};
+
+const getExitAttemptsToday = async (userId: string) => {
+    const supabase = createSupabaseClient();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { data } = await supabase
+        .from('platform_exits')
+        .select('created_at, exit_type')
+        .eq('user_id', userId)
+        .gte('created_at', today.toISOString())
+        .order('created_at', { ascending: false });
+
+    return {
+        count: data?.length || 0,
+        recent: data?.slice(0, 5).map(exit => ({
+            time: new Date(exit.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            type: exit.exit_type
+        })) || []
+    };
+};
+
+const getParentalSettings = async (userId: string) => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data } = await supabase
+        .from('parental_settings')
+        .select('parent_email, notify_on_exit')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    return data ? {
+        parentEmail: data.parent_email,
+        notifyOnExit: data.notify_on_exit
+    } : null;
+};
+
+export const updateParentalSettings = async (userId: string, email: string, notify: boolean) => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { error } = await supabase.from('parental_settings').upsert({
+        user_id: userId,
+        parent_email: email,
+        notify_on_exit: notify,
+        updated_at: new Date().toISOString()
+    }, {
+        onConflict: 'user_id'
+    });
+
+    if (error) {
+        console.error("Failed to update parental settings:", error);
+        throw new Error(error.message);
+    }
+};
+
 // Main function to get student dashboard data
 export const getStudentDashboardData = async (): Promise<StudentDashboardData | null> => {
     const { userId } = await auth();
@@ -260,7 +340,10 @@ export const getStudentDashboardData = async (): Promise<StudentDashboardData | 
         weeklyActivity,
         totalSessionsAllTime,
         totalLearningTimeAllTime,
-        favoriteSubject
+        favoriteSubject,
+        platformActiveMinutesToday,
+        exitData,
+        parentalSettings
     ] = await Promise.all([
         getWeeklyLearningTime(userId),
         getSessionsCompletedThisWeek(userId),
@@ -271,7 +354,10 @@ export const getStudentDashboardData = async (): Promise<StudentDashboardData | 
         getWeeklyActivity(userId),
         getTotalSessionsAllTime(userId),
         getTotalLearningTimeAllTime(userId),
-        getFavoriteSubject(userId)
+        getFavoriteSubject(userId),
+        getPlatformActiveMinutesToday(userId),
+        getExitAttemptsToday(userId),
+        getParentalSettings(userId)
     ]);
 
     return {
@@ -284,7 +370,11 @@ export const getStudentDashboardData = async (): Promise<StudentDashboardData | 
         weeklyActivity,
         totalSessionsAllTime,
         totalLearningTimeAllTime,
-        favoriteSubject
+        favoriteSubject,
+        platformActiveMinutesToday: platformActiveMinutesToday,
+        exitAttemptsToday: exitData.count,
+        recentExits: exitData.recent,
+        parentalSettings
     };
 };
 

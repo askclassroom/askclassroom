@@ -13,11 +13,16 @@ import {
     Minus,
     Award,
     BarChart3,
-    Sparkles
+    Sparkles,
+    ShieldAlert,
+    MonitorPlay,
+    Shield
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
+import { ParentalControlsModal } from "./ParentalControlsModal";
 
 interface StudentDashboardClientProps {
     data: StudentDashboardData | null;
@@ -56,8 +61,14 @@ const StudentDashboardClient = ({ data }: StudentDashboardClientProps) => {
         weeklyActivity,
         totalSessionsAllTime,
         totalLearningTimeAllTime,
-        favoriteSubject
+        favoriteSubject,
+        platformActiveMinutesToday,
+        exitAttemptsToday,
+        recentExits,
+        parentalSettings
     } = data;
+
+    const [isParentalModalOpen, setIsParentalModalOpen] = useState(false);
 
     const getTrendIcon = () => {
         switch (engagementTrend) {
@@ -146,6 +157,24 @@ const StudentDashboardClient = ({ data }: StudentDashboardClientProps) => {
             color: getTrendColor().split(' ')[0],
             iconColor: engagementTrend === 'up' ? 'text-green-600' : engagementTrend === 'down' ? 'text-red-600' : 'text-yellow-600',
             borderColor: getTrendColor().split(' ')[2] || 'border-gray-200'
+        },
+        {
+            icon: <MonitorPlay className="w-8 h-8" />,
+            label: "Active Focus Time Today",
+            value: `${platformActiveMinutesToday} min`,
+            subValue: `Time spent active on platform`,
+            color: "bg-teal-50",
+            iconColor: "text-teal-600",
+            borderColor: "border-teal-200"
+        },
+        {
+            icon: <ShieldAlert className="w-8 h-8" />,
+            label: "Distractions / Exits Today",
+            value: exitAttemptsToday.toString(),
+            subValue: exitAttemptsToday > 0 ? `${exitAttemptsToday} tabs closed or switched` : 'Great focus today! 🌟',
+            color: exitAttemptsToday > 0 ? "bg-amber-50" : "bg-emerald-50",
+            iconColor: exitAttemptsToday > 0 ? "text-amber-600" : "text-emerald-600",
+            borderColor: exitAttemptsToday > 0 ? "border-amber-200" : "border-emerald-200"
         }
     ];
 
@@ -159,6 +188,19 @@ const StudentDashboardClient = ({ data }: StudentDashboardClientProps) => {
             transition={{ duration: 0.5 }}
             className="space-y-8"
         >
+            <div className="flex justify-between items-center bg-white rounded-3xl p-6 border-2 border-black">
+                <div>
+                    <h1 className="text-2xl font-bold">Your Learning Dashboard</h1>
+                </div>
+                <button
+                    onClick={() => setIsParentalModalOpen(true)}
+                    className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl hover:bg-gray-800 transition-colors shadow-sm"
+                >
+                    <Shield className="w-5 h-5 text-gray-300" />
+                    <span className="font-semibold text-sm">Parental Controls</span>
+                </button>
+            </div>
+
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {statCards.map((stat, index) => (
@@ -283,6 +325,13 @@ const StudentDashboardClient = ({ data }: StudentDashboardClientProps) => {
                     </ul>
                 </div>
             </motion.div>
+
+            <ParentalControlsModal
+                isOpen={isParentalModalOpen}
+                onClose={() => setIsParentalModalOpen(false)}
+                initialEmail={parentalSettings?.parentEmail || null}
+                initialNotify={parentalSettings?.notifyOnExit || false}
+            />
         </motion.div>
     );
 };
