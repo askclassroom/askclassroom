@@ -11,14 +11,12 @@ interface ParentalControlsModalProps {
     onClose: () => void;
     initialEmail: string | null;
     initialNotify: boolean;
-    initialThreshold: number;
 }
 
-export function ParentalControlsModal({ isOpen, onClose, initialEmail, initialNotify, initialThreshold }: ParentalControlsModalProps) {
+export function ParentalControlsModal({ isOpen, onClose, initialEmail, initialNotify }: ParentalControlsModalProps) {
     const { userId } = useAuth();
     const [email, setEmail] = useState(initialEmail || '');
     const [notify, setNotify] = useState(initialNotify);
-    const [threshold, setThreshold] = useState(initialThreshold || 5);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
@@ -38,7 +36,7 @@ export function ParentalControlsModal({ isOpen, onClose, initialEmail, initialNo
         setSuccess(false);
 
         try {
-            await updateParentalSettings(userId, email, notify, threshold);
+            await updateParentalSettings(userId, email, notify);
             setSuccess(true);
             setTimeout(() => {
                 onClose();
@@ -114,26 +112,6 @@ export function ParentalControlsModal({ isOpen, onClose, initialEmail, initialNo
                                         <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${notify ? 'translate-x-5' : 'translate-x-0'}`} />
                                     </div>
                                 </label>
-
-                                {notify && (
-                                    <div className="space-y-2 pl-4 border-l-2 border-gray-100 ml-2">
-                                        <label htmlFor="distractionThreshold" className="block text-sm font-semibold text-gray-700">
-                                            Email me after how many distractions?
-                                        </label>
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                id="distractionThreshold"
-                                                type="number"
-                                                min="1"
-                                                max="50"
-                                                value={threshold}
-                                                onChange={(e) => setThreshold(parseInt(e.target.value) || 1)}
-                                                className="w-24 px-4 py-2 text-center rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder-gray-400"
-                                            />
-                                            <span className="text-sm text-gray-500 font-medium">distractions (default is 5)</span>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
                             {error && (
