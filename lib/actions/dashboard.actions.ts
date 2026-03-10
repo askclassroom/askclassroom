@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { createSupabaseClient } from "../supabase";
+import { createClient } from "@supabase/supabase-js";
 import { subDays, startOfDay, endOfDay, differenceInDays, format } from "date-fns";
 
 export type StudentDashboardData = {
@@ -287,7 +288,10 @@ const getExitAttemptsToday = async (userId: string) => {
 };
 
 const getParentalSettings = async (userId: string) => {
-    const supabase = createSupabaseClient();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const { data } = await supabase
         .from('parental_settings')
         .select('parent_email, notify_on_exit')
@@ -301,13 +305,23 @@ const getParentalSettings = async (userId: string) => {
 };
 
 export const updateParentalSettings = async (userId: string, email: string, notify: boolean) => {
-    const supabase = createSupabaseClient();
-    await supabase.from('parental_settings').upsert({
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { error } = await supabase.from('parental_settings').upsert({
         user_id: userId,
         parent_email: email,
         notify_on_exit: notify,
         updated_at: new Date().toISOString()
+    }, {
+        onConflict: 'user_id'
     });
+
+    if (error) {
+        console.error("Failed to update parental settings:", error);
+        throw new Error(error.message);
+    }
 };
 
 // Main function to get student dashboard data
