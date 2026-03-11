@@ -699,3 +699,57 @@ body {
 .lp-float-slow { animation: lp-float-slow 7s ease-in-out infinite; }
 .lp-float-2 { animation: lp-float 6s ease-in-out infinite 1s; }
 .lp-float-3 { animation: lp-float 5.5s ease-in-out infinite 0.5s; }
+
+/* ═══════════════════════════════════════════════
+   HOMEPAGE: Glassmorphism Animations
+═══════════════════════════════════════════════ */
+
+@keyframes hp-fade-up-kf {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hp-fade-down-kf {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hp-blob-kf {
+  0%, 100% { transform: scale(1) translate(0, 0); }
+  33%       { transform: scale(1.08) translate(20px, -20px); }
+  66%       { transform: scale(0.95) translate(-10px, 14px); }
+}
+
+@keyframes hp-wave-kf {
+  0%, 100% { transform: rotate(0deg); }
+  20%       { transform: rotate(14deg); }
+  40%       { transform: rotate(-8deg); }
+  60%       { transform: rotate(12deg); }
+  80%       { transform: rotate(-4deg); }
+}
+
+/* Utility classes */
+.hp-fade-up {
+  opacity: 0;
+  animation: hp-fade-up-kf 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.hp-fade-down {
+  opacity: 0;
+  animation: hp-fade-down-kf 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.hp-blob {
+  animation: hp-blob-kf 12s ease-in-out infinite;
+}
+.hp-blob-delay-2 {
+  animation: hp-blob-kf 14s ease-in-out infinite 2s;
+}
+.hp-blob-delay-4 {
+  animation: hp-blob-kf 16s ease-in-out infinite 4s;
+}
+
+.hp-wave {
+  display: inline-block;
+  animation: hp-wave-kf 2.4s ease-in-out 0.8s 1 forwards;
+}
