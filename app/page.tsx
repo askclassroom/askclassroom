@@ -12,6 +12,7 @@ import FAQSection from '@/components/FAQSection'
 import Footer from '@/components/Footer'
 import Teams from '@/components/Teams'
 import FourWaysToLearn from '@/components/FourWaysToLearn'
+import ContactUs from '@/components/ContactUs'
 
 const Page = async () => {
     return (
@@ -25,7 +26,9 @@ const Page = async () => {
             {/* <FourWaysToLearn /> */}
             <FAQSection />
             <Teams />
+            <ContactUs />
             <Footer />
+
         </div>
     )
 }

@@ -16,7 +16,7 @@ const youtube = google.youtube({
     auth: process.env.YOUTUBE_API_KEY
 })
 
-export const getAllCompanions = async ({ limit = 10, page = 1, subject, topic }: GetAllCompanions) => {
+export const getAllCompanions = async ({ limit = 100, page = 1, subject, topic }: GetAllCompanions) => {
     const supabase = createSupabaseClient();
 
     let query = supabase.from('companions').select();
@@ -44,12 +44,21 @@ export const createCompanion = async (FormData: CreateCompanion) => {
     const { userId: author } = await auth();
     const supabase = createSupabaseClient();
 
+    let image_keywords: string[] = [];
+    try {
+        const keywordData = await generateImageKeywords(FormData.name, FormData.subject, FormData.topic);
+        image_keywords = keywordData.keywords || [];
+    } catch (e) {
+        console.error("Failed to generate keywords during companion creation:", e);
+    }
+
     const { data, error } = await supabase.from('companions').insert({
         ...FormData,
-        author
+        author,
+        image_keywords
     }).select();
 
-    if (error || !data) throw new Error(error?.message || "Faled to create a companion");
+    if (error || !data) throw new Error(error?.message || "Failed to create a companion");
 
     return data[0];
 }
@@ -334,10 +343,11 @@ export const getUserSessionsWithTranscripts = async (userId: string, limit = 10)
 
     if (error) {
         console.error('Error fetching user sessions:', error);
-        throw new Error(error.message);
+        // Instead of throwing which crashes the page on socket/fetch errors, return empty array
+        return [];
     }
 
-    return data;
+    return data || [];
 };
 
 /**
@@ -505,7 +515,7 @@ export const generateImageKeywords = async (companionName: string, subject: stri
 
     const prompt = `
 You are an expert prompt engineer for stock photography search. 
-Generate a JSON object containing an array of 5 highly visual, distinct image search keywords for Unsplash.
+Generate a JSON object containing an array of exactly 3 highly visual, distinct image search keywords for Pexels.
 The keywords should capture the essence of:
 Subject: ${subject}
 Topic: ${topic}
@@ -516,7 +526,7 @@ Requirements:
 - Do NOT include the companion's raw name unless it is a famous historical figure or place.
 - Return ONLY valid JSON in this exact format, with no markdown formatting or other text:
 {
-  "keywords": ["keyword 1", "keyword 2", "keyword 3", "keyword 4", "keyword 5"]
+  "keywords": ["keyword 1", "keyword 2", "keyword 3"]
 }
 `;
 
@@ -532,9 +542,9 @@ Requirements:
                     content: prompt
                 }
             ],
-            model: "llama-3.3-70b-versatile",
-            temperature: 0.2,
-            max_tokens: 150,
+            model: "openai/gpt-oss-120b",
+            temperature: 0.5,
+            max_tokens: 1500,
             response_format: { type: "json_object" }
         });
 

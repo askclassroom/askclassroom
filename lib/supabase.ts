@@ -9,4 +9,19 @@ export const createSupabaseClient = () => {
                 return ((await auth()).getToken())
             }
         }
-    )}
+    )
+}
+
+// Bypass RLS for trusted server actions
+export const createSupabaseAdmin = () => {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false,
+            }
+        }
+    )
+}

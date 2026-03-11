@@ -21,7 +21,7 @@ console.log(companions)
                     <SubjectFilter />
                 </div> */}
             </section>
-            <section className="companions-grid">
+            <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                 {companions.map((companion) => (
                     <CompanionCard
                         key={companion.id}
