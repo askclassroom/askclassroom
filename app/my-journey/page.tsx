@@ -150,9 +150,9 @@ const Profile = async () => {
               <h1 className="text-2xl font-extrabold text-gray-800">
                 {userProfile?.name || `${user.firstName} ${user.lastName}`}
               </h1>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <div className="text-sm text-gray-500 mt-0.5">
                 {user.emailAddresses[0].emailAddress}
-              </p>
+              </div>
             </div>
             <EditProfileDialog initialData={userProfile} />
           </div>
