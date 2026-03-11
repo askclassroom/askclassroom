@@ -24,6 +24,7 @@ type Companion = Models.DocumentList<Models.Document> & {
   topic: string;
   duration: number;
   bookmarked: boolean;
+  image_keywords?: string[];
 };
 
 interface CreateCompanion {
@@ -33,6 +34,7 @@ interface CreateCompanion {
   voice: string;
   style: string;
   duration: number;
+  image_keywords?: string[];
 }
 
 interface GetAllCompanions {

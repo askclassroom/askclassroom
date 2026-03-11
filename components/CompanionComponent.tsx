@@ -362,7 +362,7 @@ function VideoRowSection({
     );
 }
 
-const CompanionComponent = ({ companionId, subject, topic, name, userName, userImage, style, voice }: CompanionComponentProps) => {
+const CompanionComponent = ({ companionId, subject, topic, name, userName, userImage, style, voice, image_keywords }: CompanionComponentProps) => {
 
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -912,6 +912,7 @@ const CompanionComponent = ({ companionId, subject, topic, name, userName, userI
                             subject={subject}
                             topic={topic}
                             isVideoMode={false}
+                            image_keywords={image_keywords}
                         />
 
                         {/* Lottie Animation overlays the carousel when active */}

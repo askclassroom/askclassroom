@@ -456,9 +456,10 @@ interface ImageCarouselProps {
     subject: string;
     topic: string;
     isVideoMode?: boolean;
+    image_keywords?: string[];
 }
 
-export function ImageCarousel({ companionName, subject, topic, isVideoMode = false }: ImageCarouselProps) {
+export function ImageCarousel({ companionName, subject, topic, isVideoMode = false, image_keywords = [] }: ImageCarouselProps) {
     const [images, setImages] = useState<Photo[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -613,6 +614,11 @@ export function ImageCarousel({ companionName, subject, topic, isVideoMode = fal
             if (hasGeneratedKeywords.current) return;
             hasGeneratedKeywords.current = true;
             try {
+                if (image_keywords && image_keywords.length > 0) {
+                    setKeywordsData({ keywords: image_keywords });
+                    setTranscriptKeyword(image_keywords[0]);
+                    return;
+                }
                 const data = await generateImageKeywords(companionName, subject, topic);
                 if (data && data.keywords.length > 0) {
                     setKeywordsData(data);
@@ -628,7 +634,7 @@ export function ImageCarousel({ companionName, subject, topic, isVideoMode = fal
         };
 
         fetchKeywords();
-    }, [companionName, subject, topic]);
+    }, [companionName, subject, topic, image_keywords]);
 
     // Initial fetch to get first page of format-specific media
     useEffect(() => {

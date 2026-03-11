@@ -75,7 +75,6 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { generateImageKeywords } from '@/lib/actions/companion.actions';
 import { createClient } from 'pexels';
 
 interface CompanionCardProps {
@@ -85,6 +84,7 @@ interface CompanionCardProps {
   subject: string;
   duration: number;
   color: string;
+  image_keywords?: string[];
 }
 
 const CompanionCard = async ({
@@ -94,14 +94,14 @@ const CompanionCard = async ({
   subject,
   duration,
   color,
+  image_keywords,
 }: CompanionCardProps) => {
 
   // Fetch image logic
   let imageUrl = "";
   try {
-    const data = await generateImageKeywords(name, subject, topic);
-    if (data && data.keywords && data.keywords.length > 0) {
-      const keyword = data.keywords[0];
+    if (image_keywords && image_keywords.length > 0) {
+      const keyword = image_keywords[0];
       const pexelsClientId = process.env.NEXT_PUBLIC_PEXELS_CLIENT_ID;
       if (pexelsClientId) {
         const client = createClient(pexelsClientId);
