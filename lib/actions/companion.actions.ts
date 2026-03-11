@@ -343,10 +343,11 @@ export const getUserSessionsWithTranscripts = async (userId: string, limit = 10)
 
     if (error) {
         console.error('Error fetching user sessions:', error);
-        throw new Error(error.message);
+        // Instead of throwing which crashes the page on socket/fetch errors, return empty array
+        return [];
     }
 
-    return data;
+    return data || [];
 };
 
 /**

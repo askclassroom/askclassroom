@@ -24,6 +24,55 @@ import Link from "next/link";
 import { useState } from "react";
 import { ParentalControlsModal } from "./ParentalControlsModal";
 
+const Sparkline = ({ path, color, gradientId, endY, labelY }: { path: string, color: string, gradientId: string, endY: number, labelY: string }) => (
+  <svg className="w-24 h-16 ml-auto" viewBox="0 0 100 40" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+        <stop offset="100%" stopColor={color} stopOpacity="0" />
+      </linearGradient>
+    </defs>
+    <path d={`${path} L 100 40 L 0 40 Z`} fill={`url(#${gradientId})`} />
+    <path d={path} fill="none" stroke={color} strokeWidth="2.5" />
+    <circle cx="100" cy={endY} r="3" fill={color} stroke="#fff" strokeWidth="1" />
+    <line x1="100" y1={endY} x2="100" y2="40" stroke="#E5E7EB" strokeWidth="1" strokeDasharray="4 2" />
+    <text x="100" y={endY - 6} fontSize="11" fill="#111827" fontWeight="bold" textAnchor="end">{labelY}</text>
+  </svg>
+);
+
+const RingChart = ({ value, color }: { value: number, color: string }) => {
+  const dash = `${value}, 100`;
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative w-12 h-12 flex items-center justify-center">
+        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+          <path className="text-gray-100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          <path style={{ color }} strokeDasharray={dash} strokeWidth="3" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        </svg>
+        <div className="absolute flex items-center justify-center text-[10px] font-semibold text-gray-900 border-2 border-white rounded-full bg-white h-7 w-7 shadow-sm">
+          {value}
+        </div>
+      </div>
+      <span className="text-[10px] font-medium text-gray-500 mt-1">Completion</span>
+    </div>
+  );
+};
+
+const generateSparklineCurve = (data: number[]) => {
+    if (!data || data.length === 0) return { path: "M 0 40 L 100 40", endY: 40 };
+    const max = Math.max(...data, 1);
+    const yOffsets = data.map(val => 40 - ((val / max) * 30));
+    const stepX = 100 / (data.length - 1 || 1);
+    const points = yOffsets.map((y, i) => ({ x: i * stepX, y }));
+
+    let path = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+        const x_mid = (points[i].x + points[i + 1].x) / 2;
+        path += ` C ${x_mid} ${points[i].y}, ${x_mid} ${points[i+1].y}, ${points[i+1].x} ${points[i+1].y}`;
+    }
+    return { path, endY: points[points.length - 1].y };
+};
+
 interface StudentDashboardClientProps {
     data: StudentDashboardData | null;
 }
@@ -92,89 +141,119 @@ const StudentDashboardClient = ({ data }: StudentDashboardClientProps) => {
         }
     };
 
-    const getTrendColor = () => {
-        switch (engagementTrend) {
-            case 'up':
-                return 'bg-green-50 text-green-700 border-green-200';
-            case 'down':
-                return 'bg-red-50 text-red-700 border-red-200';
-            default:
-                return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-        }
-    };
+    const activityData = weeklyActivity.map(d => d.minutes);
+    const sparklineData = generateSparklineCurve(activityData);
 
     const statCards = [
         {
-            icon: <Clock className="w-8 h-8" />,
+            icon: <Clock className="w-6 h-6" />,
             label: "This Week's Learning",
-            value: `${weeklyLearningTime} min`,
+            subLabel: "Time spent learning",
+            value: weeklyLearningTime.toString(),
+            valueSuffix: "min",
+            trend: engagementTrend === 'stable' ? "" : `10%+`,
+            trendUp: engagementTrend === 'up',
             subValue: `${sessionsCompletedThisWeek} sessions`,
-            color: "bg-blue-50",
-            iconColor: "text-blue-600",
-            borderColor: "border-blue-200"
+            iconBg: "#3B82F6",
+            chart: "sparkline" as const,
+            sparklinePath: sparklineData.path,
+            endY: sparklineData.endY,
+            labelY: weeklyActivity.length > 0 ? weeklyActivity[weeklyActivity.length - 1].minutes.toString() : "0"
         },
         {
-            icon: <Award className="w-8 h-8" />,
-            label: "All Time Learning",
-            value: `${totalLearningTimeAllTime} min`,
-            subValue: `${totalSessionsAllTime} sessions total`,
-            color: "bg-purple-50",
-            iconColor: "text-purple-600",
-            borderColor: "border-purple-200"
+            icon: <Award className="w-6 h-6" />,
+            label: "All Time",
+            subLabel: "Total learning time",
+            value: totalLearningTimeAllTime.toString(),
+            valueSuffix: "min",
+            trend: "",
+            trendUp: true,
+            subValue: `${totalSessionsAllTime} total sessions`,
+            iconBg: "#8B5CF6",
+            chart: "ring" as const,
+            ringValue: Math.min(100, Math.round((totalLearningTimeAllTime / 1000) * 100)) || 10
         },
         {
-            icon: <BookOpen className="w-8 h-8" />,
+            icon: <BookOpen className="w-6 h-6" />,
             label: "Subjects This Week",
+            subLabel: subjectsStudied.length > 0 ? subjectsStudied.join(', ') : 'None yet',
             value: subjectsStudied.length.toString(),
-            subValue: subjectsStudied.length > 0 ? subjectsStudied.join(', ') : 'None yet',
-            color: "bg-indigo-50",
-            iconColor: "text-indigo-600",
-            borderColor: "border-indigo-200"
+            valueSuffix: "",
+            trend: "",
+            trendUp: true,
+            subValue: "Active subjects",
+            iconBg: "#6366F1",
+            chart: "ring" as const,
+            ringValue: subjectsStudied.length > 0 ? Math.min(100, subjectsStudied.length * 20) : 0
         },
         {
-            icon: <Target className="w-8 h-8" />,
+            icon: <Target className="w-6 h-6" />,
             label: "Current Focus",
-            value: currentFocusTopic?.topic || 'No active focus',
-            subValue: currentFocusTopic?.subject || 'Start a session to set focus',
-            color: "bg-orange-50",
-            iconColor: "text-orange-600",
-            borderColor: "border-orange-200"
+            subLabel: currentFocusTopic?.subject || 'Start a session to set focus',
+            value: currentFocusTopic?.topic || 'None',
+            valueSuffix: "",
+            trend: "",
+            trendUp: true,
+            subValue: "Active topic",
+            iconBg: "#F97316",
+            chart: "ring" as const,
+            ringValue: currentFocusTopic ? 100 : 0
         },
         {
-            icon: <Flame className="w-8 h-8" />,
+            icon: <Flame className="w-6 h-6" />,
             label: "Learning Streak",
-            value: `${learningStreak} day${learningStreak !== 1 ? 's' : ''}`,
-            subValue: learningStreak > 0 ? 'Keep it up! 🔥' : 'Start learning today!',
-            color: "bg-red-50",
-            iconColor: "text-red-600",
-            borderColor: "border-red-200"
+            subLabel: learningStreak > 0 ? 'Keep it up! 🔥' : 'Start learning today!',
+            value: learningStreak.toString(),
+            valueSuffix: " days",
+            trend: "",
+            trendUp: true,
+            subValue: "Daily consistency",
+            iconBg: "#EF4444",
+            chart: "sparkline" as const,
+            sparklinePath: sparklineData.path,
+            endY: sparklineData.endY,
+            labelY: learningStreak.toString()
         },
         {
-            icon: <BarChart3 className="w-8 h-8" />,
+            icon: <BarChart3 className="w-6 h-6" />,
             label: "Favorite Subject",
-            value: favoriteSubject,
-            subValue: `Trend: ${getTrendText()}`,
-            color: getTrendColor().split(' ')[0],
-            iconColor: engagementTrend === 'up' ? 'text-green-600' : engagementTrend === 'down' ? 'text-red-600' : 'text-yellow-600',
-            borderColor: getTrendColor().split(' ')[2] || 'border-gray-200'
+            subLabel: `Trend: ${getTrendText()}`,
+            value: favoriteSubject || "None",
+            valueSuffix: "",
+            trend: engagementTrend === 'up' ? "10%" : engagementTrend === 'down' ? "10%" : "",
+            trendUp: engagementTrend === 'up',
+            subValue: "Highest engagement",
+            iconBg: engagementTrend === 'down' ? '#EF4444' : '#10B981',
+            chart: "ring" as const,
+            ringValue: engagementTrend === 'up' ? 90 : engagementTrend === 'stable' ? 50 : 30
         },
         {
-            icon: <MonitorPlay className="w-8 h-8" />,
-            label: "Active Focus Time Today",
-            value: `${platformActiveMinutesToday} min`,
-            subValue: `Time spent active on platform`,
-            color: "bg-teal-50",
-            iconColor: "text-teal-600",
-            borderColor: "border-teal-200"
+            icon: <MonitorPlay className="w-6 h-6" />,
+            label: "Active Focus Time",
+            subLabel: "Platform activity today",
+            value: platformActiveMinutesToday.toString(),
+            valueSuffix: " min",
+            trend: "",
+            trendUp: true,
+            subValue: "Today's activity",
+            iconBg: "#14B8A6",
+            chart: "sparkline" as const,
+            sparklinePath: sparklineData.path,
+            endY: sparklineData.endY,
+            labelY: platformActiveMinutesToday.toString()
         },
         {
-            icon: <ShieldAlert className="w-8 h-8" />,
-            label: "Distractions / Exits Today",
+            icon: <ShieldAlert className="w-6 h-6" />,
+            label: "Distractions / Exits",
+            subLabel: exitAttemptsToday > 0 ? "Tabs closed or switched" : "Great focus today! 🌟",
             value: exitAttemptsToday.toString(),
-            subValue: exitAttemptsToday > 0 ? `${exitAttemptsToday} tabs closed or switched` : 'Great focus today! 🌟',
-            color: exitAttemptsToday > 0 ? "bg-amber-50" : "bg-emerald-50",
-            iconColor: exitAttemptsToday > 0 ? "text-amber-600" : "text-emerald-600",
-            borderColor: exitAttemptsToday > 0 ? "border-amber-200" : "border-emerald-200"
+            valueSuffix: "",
+            trend: "",
+            trendUp: false,
+            subValue: "Exits today",
+            iconBg: exitAttemptsToday > 0 ? "#F59E0B" : "#10B981",
+            chart: "ring" as const,
+            ringValue: exitAttemptsToday > 0 ? Math.min(100, Math.max(10, 100 - (exitAttemptsToday * 15))) : 100
         }
     ];
 
@@ -202,26 +281,43 @@ const StudentDashboardClient = ({ data }: StudentDashboardClientProps) => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8 mt-4">
                 {statCards.map((stat, index) => (
                     <motion.div
                         key={index}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className={cn(
-                            "rounded-3xl p-6 flex items-start gap-4 border-2",
-                            stat.color,
-                            stat.borderColor
-                        )}
+                        className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100/50 flex flex-col justify-between"
                     >
-                        <div className={cn("p-3 rounded-2xl bg-white shadow-sm", stat.iconColor)}>
-                            {stat.icon}
+                        <div className="flex items-center gap-3.5 mb-8">
+                            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white shrink-0" style={{ backgroundColor: stat.iconBg }}>
+                                {stat.icon}
+                            </div>
+                            <div className="min-w-0">
+                                <h3 className="font-semibold text-[15px] text-gray-900 truncate">{stat.label}</h3>
+                                <p className="text-[13px] text-gray-500 truncate">{stat.subLabel}</p>
+                            </div>
                         </div>
-                        <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-600 mb-1">{stat.label}</p>
-                            <p className="text-2xl font-bold mb-1">{stat.value}</p>
-                            <p className="text-sm text-gray-500 capitalize">{stat.subValue}</p>
+                        <div className="flex justify-between items-end gap-2">
+                            <div className="min-w-0">
+                                <div className="flex items-end gap-2 mb-1 flex-wrap">
+                                    <span className="text-2xl lg:text-[28px] leading-none font-semibold text-gray-900 tracking-tight truncate max-w-full">
+                                        {stat.value}
+                                        {stat.valueSuffix && <span className="text-lg lg:text-xl ml-1 font-medium">{stat.valueSuffix}</span>}
+                                    </span>
+                                    {stat.trend && (
+                                        <span className={`text-xs font-semibold flex items-center pb-0.5 whitespace-nowrap ${stat.trendUp ? 'text-green-500' : 'text-red-500'}`}>
+                                            <span className="text-[8px] mr-1">{stat.trendUp ? '▲' : '▼'}</span> {stat.trend}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-[13px] text-gray-500 truncate">{stat.subValue}</p>
+                            </div>
+                            <div className="shrink-0 pl-2">
+                                {stat.chart === 'ring' && <RingChart value={stat.ringValue || 0} color={stat.iconBg} />}
+                                {stat.chart === 'sparkline' && <Sparkline path={stat.sparklinePath || ""} color={stat.iconBg} gradientId={`grad-${index}`} endY={stat.endY || 40} labelY={stat.labelY || ""} />}
+                            </div>
                         </div>
                     </motion.div>
                 ))}
@@ -270,12 +366,9 @@ const StudentDashboardClient = ({ data }: StudentDashboardClientProps) => {
                         <p className="text-sm text-gray-600">Total this week</p>
                         <p className="text-3xl font-bold">{weeklyLearningTime} minutes</p>
                     </div>
-                    <div className={cn(
-                        "px-4 py-2 rounded-full border flex items-center gap-2",
-                        getTrendColor()
-                    )}>
+                    <div className="flex items-center gap-2">
                         {getTrendIcon()}
-                        <span className="font-medium">{getTrendText()} vs last week</span>
+<span className="font-medium text-gray-800">{getTrendText()}</span>
                     </div>
                 </div>
             </motion.div>
