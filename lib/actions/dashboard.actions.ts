@@ -12,6 +12,7 @@ export type StudentDashboardData = {
     currentFocusTopic: {
         subject: string;
         topic: string;
+        companion_id?: string | null;
     } | null;
     learningStreak: number; // days
     engagementTrend: 'up' | 'stable' | 'down';
@@ -115,7 +116,22 @@ const getCurrentFocusTopic = async (userId: string) => {
         .limit(1)
         .maybeSingle();
 
-    return data || null;
+    if (!data) return null;
+
+    const { data: sessionData } = await supabase
+        .from('learning_sessions')
+        .select('companion_id')
+        .eq('user_id', userId)
+        .eq('subject', data.subject)
+        .eq('topic', data.topic)
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    return {
+        ...data,
+        companion_id: sessionData?.companion_id || null
+    };
 };
 
 // Get weekly learning time
