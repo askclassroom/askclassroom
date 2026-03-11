@@ -15,6 +15,8 @@ import CompanionsList from "@/components/CompanionsList";
 import { SessionsList } from "@/components/SessionsList";
 import { getUserQuizzes } from "@/lib/actions/quiz.actions";
 import { QuizzesList } from "@/components/QuizzesList";
+import { getUserProfile } from "@/lib/actions/user.actions";
+import EditProfileDialog from "@/components/EditProfileDialog";
 
 // ── Stat pill ────────────────────────────────────────────────────────────────
 const StatPill = ({
@@ -80,10 +82,11 @@ const Profile = async () => {
   const user = await currentUser();
   if (!user) redirect("/sign-in");
 
-  const [companions, rawSessions, userQuizzes] = await Promise.all([
+  const [companions, rawSessions, userQuizzes, userProfile] = await Promise.all([
     getUserCompanions(user.id),
     getUserSessionsWithTranscripts(user.id, 30),
     getUserQuizzes(user.id, 10),
+    getUserProfile(),
   ]);
 
   // Only sessions with actual transcript content
@@ -142,13 +145,16 @@ const Profile = async () => {
           </div>
 
           {/* Name / email */}
-          <div className="flex-1 text-center sm:text-left">
-            <h1 className="text-2xl font-extrabold text-gray-800">
-              {user.firstName} {user.lastName}
-            </h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {user.emailAddresses[0].emailAddress}
-            </p>
+          <div className="flex-1 text-center sm:text-left flex flex-col justify-center sm:justify-start items-center sm:items-start gap-2">
+            <div>
+              <h1 className="text-2xl font-extrabold text-gray-800">
+                {userProfile?.name || `${user.firstName} ${user.lastName}`}
+              </h1>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {user.emailAddresses[0].emailAddress}
+              </p>
+            </div>
+            <EditProfileDialog initialData={userProfile} />
           </div>
 
           {/* Stat pills */}
