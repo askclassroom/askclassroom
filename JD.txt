@@ -1,0 +1,89 @@
+========================================================
+JOB DESCRIPTION: Full-Stack Developer (MVP Build)
+Company: TutorTalkAI
+Location: Remote / Hybrid (India)
+Type: Contract / Full-Time
+Posted: March 2026
+========================================================
+
+ABOUT US
+--------
+TutorTalkAI is an AI-powered ed-tech platform designed to transform the
+way students learn and interact with study material. We are building an
+intelligent, personalized learning experience that helps students practice,
+revise, and master concepts faster — all in one place.
+
+We are a fast-moving early-stage startup looking for a passionate and
+skilled developer to join us and help ship our MVP.
+
+
+ROLE OVERVIEW
+-------------
+We are looking for a Full-Stack Developer who can take ownership of building
+our Minimum Viable Product (MVP) end-to-end. You will work closely with the
+founder and design team to translate ideas and wireframes into a fully
+functional, production-ready web application.
+
+
+RESPONSIBILITIES
+----------------
+- Build and maintain both frontend and backend of the TutorTalkAI platform
+- Develop responsive, performant UI using Next.js / React
+- Design and implement RESTful APIs and integrate third-party services
+  (e.g., OpenAI, YouTube, payment gateways)
+- Set up and manage databases (PostgreSQL)
+- Integrate AI/LLM features for personalized learning flows
+- Handle authentication, authorization, and user session management
+- Collaborate with the founder to prioritize and ship features quickly
+- Write clean, maintainable, and scalable code
+- Deploy and maintain the app on cloud platforms (Vercel, AWS, etc.)
+- Participate in code reviews and contribute to architecture decisions
+
+
+REQUIRED SKILLS & EXPERIENCE
+-----------------------------
+- Experience in full-stack web development
+- Strong proficiency in:
+    • Frontend: React.js / Next.js, TypeScript, Tailwind CSS
+    • Backend: Node.js, REST APIs, Express.js or Next.js API routes
+    • Databases: PostgreSQL, MongoDB, or Firebase
+    • Version Control: Git & GitHub
+- Experience with authentication systems (e.g., Clerk, NextAuth, Firebase Auth)
+- Familiarity with AI/LLM API integrations (OpenAI, Gemini, etc.) is a plus
+- Ability to work independently, move fast, and own features end-to-end
+- Good problem-solving skills and attention to detail
+- Strong communication skills
+
+
+NICE TO HAVE
+------------
+- Experience building ed-tech or SaaS products
+- Knowledge of vector databases or RAG pipelines
+- Exposure to cloud services (AWS, GCP, Vercel)
+- Prior experience working at a startup or in a fast-paced environment
+
+
+WHAT WE OFFER
+-------------
+- Opportunity to be among the first team members of a growing ed-tech startup
+- Equity / ESOPs (negotiable based on experience and commitment)
+- Competitive stipend / salary based on experience
+- Full ownership and creative freedom over the tech stack
+- Direct collaboration with the founder
+- Flexible working hours and remote-friendly environment
+- A chance to build something meaningful that impacts students across India
+
+
+HOW TO APPLY
+------------
+Send your resume, GitHub profile, and any relevant project links to:
+
+    📧 [tutortalkai@gmail.com]
+
+Subject line: "MVP Developer Application – [Your Name]"
+
+We review applications on a rolling basis, so apply early!
+
+========================================================
+TutorTalkAI | Building the Future of Learning
+========================================================

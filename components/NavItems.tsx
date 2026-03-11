@@ -40,7 +40,7 @@ const NavItems = () => {
     const pathname = usePathname();
 
     const items = [
-        { href: '/', label: 'Home', icon: Home },
+        { href: '/homepage', label: 'Home', icon: Home },
         { href: '/companions', label: 'Companions', icon: Users },
         { href: '/my-journey', label: 'My Journey', icon: BookOpen },
         { href: '/my-dashboard', label: 'Dashboard', icon: LayoutDashboard },

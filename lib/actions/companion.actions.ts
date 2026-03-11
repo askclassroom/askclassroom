@@ -340,6 +340,99 @@ export const getUserSessionsWithTranscripts = async (userId: string, limit = 10)
     return data;
 };
 
+/**
+ * Get the companion from the user's most recently accessed session
+ */
+export const getLastAccessedCompanionByUser = async (userId: string) => {
+    const supabase = createSupabaseClient();
+
+    const { data, error } = await supabase
+        .from('session_history')
+        .select(`
+            id,
+            created_at,
+            transcript,
+            companions:companion_id (*)
+        `)
+        .eq('user_id', userId)
+        .not('companion_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (error) {
+        console.error('Error fetching last accessed companion:', error);
+        return null;
+    }
+
+    if (!data) return null;
+
+    return {
+        sessionId: data.id,
+        companion: data.companions as any,
+        transcriptLength: (data.transcript as any[])?.length ?? 0,
+    };
+};
+
+/**
+ * Get homepage stats: learning streak, all-time sessions with transcripts, companions created
+ */
+export const getHomepageStats = async (userId: string) => {
+    const supabase = createSupabaseClient();
+
+    const { differenceInDays } = await import('date-fns');
+
+    // 1. Learning streak (from daily_learning_stats)
+    const { data: streakData } = await supabase
+        .from('daily_learning_stats')
+        .select('date, total_minutes')
+        .eq('user_id', userId)
+        .order('date', { ascending: false })
+        .limit(30);
+
+    let learningStreak = 0;
+    if (streakData && streakData.length > 0) {
+        let currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        for (let i = 0; i < streakData.length; i++) {
+            const statDate = new Date(streakData[i].date);
+            statDate.setHours(0, 0, 0, 0);
+            const dayDiff = differenceInDays(currentDate, statDate);
+            if (i === 0) {
+                if (dayDiff === 0 || dayDiff === 1) {
+                    learningStreak = 1;
+                    currentDate = statDate;
+                } else break;
+            } else if (dayDiff === 1) {
+                learningStreak++;
+                currentDate = statDate;
+            } else break;
+        }
+    }
+
+    // 2. All-time sessions with transcripts (sessions where transcript is not empty)
+    const { data: allSessions } = await supabase
+        .from('session_history')
+        .select('transcript')
+        .eq('user_id', userId);
+
+    const allTimeSessions = (allSessions ?? []).filter(
+        (s) => Array.isArray(s.transcript) && s.transcript.length > 0
+    ).length;
+
+    // 3. Companions created by user
+    const { count: companionsCreated } = await supabase
+        .from('companions')
+        .select('id', { count: 'exact', head: true })
+        .eq('author', userId);
+
+    return {
+        learningStreak,
+        allTimeSessions,
+        companionsCreated: companionsCreated ?? 0,
+    };
+};
+
 export const generateAndSaveTranscriptSummary = async (
     sessionId: string,
     transcript: SavedMessage[],
