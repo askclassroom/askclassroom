@@ -1,6 +1,6 @@
 "use server";
 
-import { createSupabaseClient } from "../supabase";
+import { createSupabaseAdmin, createSupabaseClient } from "../supabase";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
@@ -15,7 +15,7 @@ export async function saveOnboardingData(data: {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdmin();
 
   const { error } = await supabase.from("users").upsert({
     id: userId,
@@ -48,7 +48,7 @@ export async function getUserProfile() {
   const { userId } = await auth();
   if (!userId) return null;
 
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdmin();
   const { data, error } = await supabase
     .from("users")
     .select("*")

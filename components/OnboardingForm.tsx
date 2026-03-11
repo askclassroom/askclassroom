@@ -18,6 +18,7 @@ interface OnboardingFormProps {
   initialData?: {
     name?: string;
     classStr?: string;
+    class?: string;
     subjects?: string[];
     board?: string;
     goals?: string;
@@ -35,7 +36,7 @@ export default function OnboardingForm({ initialData, isEditMode = false }: Onbo
 
   const [formData, setFormData] = useState({
     name: initialData?.name || "",
-    classStr: initialData?.classStr || "",
+    classStr: initialData?.classStr || initialData?.class || "",
     subjects: initialData?.subjects || [] as string[],
     board: initialData?.board || "",
     goals: initialData?.goals || "",

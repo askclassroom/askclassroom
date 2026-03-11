@@ -5,6 +5,8 @@ import {
   Dialog,
   DialogContent,
   DialogTrigger,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "./ui/button";
 import OnboardingForm from "./OnboardingForm";
@@ -24,6 +26,8 @@ export default function EditProfileDialog({ initialData }: EditProfileDialogProp
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl bg-transparent border-none shadow-none p-0 overflow-visible [&>button]:hidden">
+        <DialogTitle className="sr-only">Edit Profile</DialogTitle>
+        <DialogDescription className="sr-only">Update your profile information</DialogDescription>
         {/* We reuse the OnboardingForm but hide its native styling or just let it render */}
         {/* We also pass a custom close handler if we want, but OnboardingForm redirects. */}
         {/* Wait, OnboardingForm calls router.push("/homepage") on complete. Let's make it just refresh or push to current Route if isEditMode */}
