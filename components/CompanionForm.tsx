@@ -227,7 +227,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const formSchema = z.object({
@@ -240,6 +240,7 @@ const formSchema = z.object({
 });
 
 const CompanionForm = () => {
+    const router = useRouter();
     const [subjects, setSubjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -283,7 +284,7 @@ const CompanionForm = () => {
         try {
             const companion = await createCompanion(values);
             if (companion) {
-                redirect(`/companions/${companion.id}`);
+                router.push('/companions');
             }
         } catch (error: any) {
             console.error("Failed to create companion:", error);

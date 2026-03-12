@@ -1112,6 +1112,223 @@ export const getUserSubjects = async () => {
 /**
  * Find the best matching topic using AI based on subject and topic description
  */
+// export const findMatchingTopic = async (
+//     subjectId: string,
+//     topicDescription: string
+// ): Promise<TopicMatch | null> => {
+//     console.log('🔍 Finding matching topic for:', { subjectId, topicDescription });
+
+//     const supabase = createSupabaseClient();
+
+//     // First, get the subject details
+//     const { data: subject, error: subjectError } = await supabase
+//         .from('subjects')
+//         .select('id, name')
+//         .eq('id', subjectId)
+//         .single();
+
+//     if (subjectError || !subject) {
+//         console.error('Subject not found:', subjectError);
+//         return null;
+//     }
+
+//     // Get all chapters and topics for this subject
+//     const { data: chapters, error: chaptersError } = await supabase
+//         .from('chapters')
+//         .select(`
+//             id,
+//             name,
+//             chapter_number,
+//             topics (
+//                 id,
+//                 name,
+//                 topic_number,
+//                 description
+//             )
+//         `)
+//         .eq('subject_id', subjectId)
+//         .order('chapter_number');
+
+//     if (chaptersError || !chapters) {
+//         console.error('Error fetching chapters:', chaptersError);
+//         return null;
+//     }
+
+//     // Flatten topics with their chapter context
+//     const allTopics = chapters.flatMap(chapter =>
+//         (chapter.topics || []).map((topic: any) => ({
+//             id: topic.id,
+//             name: topic.name,
+//             description: topic.description || '',
+//             chapter_id: chapter.id,
+//             chapter_name: chapter.name,
+//             chapter_number: chapter.chapter_number,
+//             subject_name: subject.name,
+//             full_context: `${chapter.name} - ${topic.name}`,
+//             searchable_text: `${chapter.name} ${topic.name} ${topic.description || ''}`.toLowerCase()
+//         }))
+//     );
+
+//     if (allTopics.length === 0) {
+//         console.log('No topics found for this subject');
+
+//         // Return the first chapter as fallback so user can still create companion
+//         if (chapters.length > 0) {
+//             const firstChapter = chapters[0];
+//             console.log('Using first chapter as fallback');
+//             return {
+//                 topic_id: null,
+//                 topic_name: 'General',
+//                 chapter_id: firstChapter.id,
+//                 chapter_name: firstChapter.name,
+//                 subject_name: subject.name,
+//                 confidence: 50,
+//                 reasoning: 'Using general chapter topic'
+//             };
+//         }
+//         return null;
+//     }
+
+//     // Log all available topics for debugging
+//     console.log('Available topics:', allTopics.map(t => ({
+//         id: t.id,
+//         name: t.name,
+//         chapter: t.chapter_name
+//     })));
+
+//     // Prepare topics for AI matching
+//     const topicsList = allTopics.map(t =>
+//         `- ${t.chapter_name} / ${t.name}: ${t.description || 'No description'}`
+//     ).join('\n');
+
+//     const prompt = `
+// You are an expert curriculum advisor. Find the BEST matching topic from our database.
+
+// Subject: ${subject.name}
+// User's Topic Description: "${topicDescription}"
+
+// Available topics (USE THESE EXACT IDs - DO NOT CREATE NEW ONES):
+// ${topicsList}
+
+// Return a JSON object with:
+// {
+//     "topic_id": "the EXACT UUID from the list above that best matches",
+//     "topic_name": "name of that topic",
+//     "chapter_name": "chapter this topic belongs to",
+//     "subject_name": "${subject.name}",
+//     "confidence": 0-100,
+//     "reasoning": "brief explanation"
+// }
+
+// CRITICAL RULES:
+// - The topic_id MUST be one of the IDs listed above
+// - DO NOT generate fake UUIDs like "a1b2c3d4..."
+// - Copy the ID exactly as shown
+// - If multiple topics match, choose the most relevant one
+// - If confidence < 30, set topic_id to null
+// - Return ONLY the JSON object, no other text
+// `;
+
+//     try {
+//         const completion = await groq.chat.completions.create({
+//             messages: [
+//                 {
+//                     role: "system",
+//                     content: "You are an expert curriculum matching AI. Return only valid JSON."
+//                 },
+//                 {
+//                     role: "user",
+//                     content: prompt
+//                 }
+//             ],
+//             model: "openai/gpt-oss-120b",
+//             temperature: 0.3,
+//             max_tokens: 500,
+//             response_format: { type: "json_object" }
+//         });
+
+//         const response = completion.choices[0]?.message?.content;
+//         if (!response) throw new Error('No response from Groq');
+
+//         const match = JSON.parse(response);
+//         console.log('AI match response:', match);
+
+//         // If AI returns null topic_id or confidence too low
+//         if (!match.topic_id || match.confidence < 30) {
+//             console.log('No good match found, confidence:', match.confidence);
+
+//             // Fallback: use the first topic as default
+//             if (allTopics.length > 0) {
+//                 const defaultTopic = allTopics[0];
+//                 console.log('Using default topic:', defaultTopic.name);
+//                 return {
+//                     topic_id: defaultTopic.id,
+//                     topic_name: defaultTopic.name,
+//                     chapter_id: defaultTopic.chapter_id,
+//                     chapter_name: defaultTopic.chapter_name,
+//                     subject_name: subject.name,
+//                     confidence: 50,
+//                     reasoning: 'Using default topic as fallback'
+//                 };
+//             }
+//             return null;
+//         }
+
+//         // Verify the topic_id exists in our list
+//         const matchedTopic = allTopics.find(t => t.id === match.topic_id);
+//         if (!matchedTopic) {
+//             console.log('AI returned invalid topic_id, using first topic as fallback');
+
+//             // Fallback to first topic
+//             if (allTopics.length > 0) {
+//                 const defaultTopic = allTopics[0];
+//                 return {
+//                     topic_id: defaultTopic.id,
+//                     topic_name: defaultTopic.name,
+//                     chapter_id: defaultTopic.chapter_id,
+//                     chapter_name: defaultTopic.chapter_name,
+//                     subject_name: subject.name,
+//                     confidence: 50,
+//                     reasoning: 'Using default topic as fallback'
+//                 };
+//             }
+//             return null;
+//         }
+
+//         console.log('✅ Found matching topic:', match);
+//         return {
+//             topic_id: matchedTopic.id,
+//             topic_name: matchedTopic.name,
+//             chapter_id: matchedTopic.chapter_id,
+//             chapter_name: matchedTopic.chapter_name,
+//             subject_name: subject.name,
+//             confidence: match.confidence,
+//             reasoning: match.reasoning
+//         };
+//     } catch (error) {
+//         console.error('❌ Error in topic matching:', error);
+
+//         // Fallback to first topic on error
+//         if (allTopics.length > 0) {
+//             const defaultTopic = allTopics[0];
+//             console.log('Error fallback to topic:', defaultTopic.name);
+//             return {
+//                 topic_id: defaultTopic.id,
+//                 topic_name: defaultTopic.name,
+//                 chapter_id: defaultTopic.chapter_id,
+//                 chapter_name: defaultTopic.chapter_name,
+//                 subject_name: subject.name,
+//                 confidence: 50,
+//                 reasoning: 'Fallback due to AI error'
+//             };
+//         }
+//         return null;
+//     }
+// };
+
+/**
+ * Find the best matching topic using AI based on subject and topic description
+ */
 export const findMatchingTopic = async (
     subjectId: string,
     topicDescription: string
@@ -1196,9 +1413,9 @@ export const findMatchingTopic = async (
         chapter: t.chapter_name
     })));
 
-    // Prepare topics for AI matching
+    // Prepare topics for AI matching - INCLUDE THE ACTUAL UUIDs
     const topicsList = allTopics.map(t =>
-        `- ${t.chapter_name} / ${t.name}: ${t.description || 'No description'}`
+        `ID: ${t.id} | Chapter: ${t.chapter_name} | Topic: ${t.name} | Description: ${t.description || 'No description'}`
     ).join('\n');
 
     const prompt = `
@@ -1207,12 +1424,12 @@ You are an expert curriculum advisor. Find the BEST matching topic from our data
 Subject: ${subject.name}
 User's Topic Description: "${topicDescription}"
 
-Available topics:
+Available topics (USE THESE EXACT IDs - DO NOT CREATE NEW ONES):
 ${topicsList}
 
 Return a JSON object with:
 {
-    "topic_id": "the UUID of the best matching topic",
+    "topic_id": "the EXACT UUID from the list above that best matches",
     "topic_name": "name of that topic",
     "chapter_name": "chapter this topic belongs to",
     "subject_name": "${subject.name}",
@@ -1220,9 +1437,12 @@ Return a JSON object with:
     "reasoning": "brief explanation"
 }
 
-Rules:
+CRITICAL RULES:
+- The topic_id MUST be one of the IDs listed above
+- DO NOT generate fake UUIDs like "a1b2c3d4..."
+- Copy the ID exactly as shown
 - If multiple topics match, choose the most relevant one
-- If confidence < 30, return null for topic_id
+- If confidence < 30, set topic_id to null
 - Return ONLY the JSON object, no other text
 `;
 
@@ -1238,7 +1458,7 @@ Rules:
                     content: prompt
                 }
             ],
-            model: "llama-3.3-70b-versatile",
+            model: "openai/gpt-oss-120b",
             temperature: 0.3,
             max_tokens: 500,
             response_format: { type: "json_object" }
@@ -1250,58 +1470,118 @@ Rules:
         const match = JSON.parse(response);
         console.log('AI match response:', match);
 
-        // If AI returns null topic_id or confidence too low
-        if (!match.topic_id || match.confidence < 30) {
-            console.log('No good match found, confidence:', match.confidence);
+        // Strategy 1: Check if the ID is valid
+        let matchedTopic = null;
 
-            // Fallback: use the first topic as default
-            if (allTopics.length > 0) {
-                const defaultTopic = allTopics[0];
-                console.log('Using default topic:', defaultTopic.name);
-                return {
-                    topic_id: defaultTopic.id,
-                    topic_name: defaultTopic.name,
-                    chapter_id: defaultTopic.chapter_id,
-                    chapter_name: defaultTopic.chapter_name,
-                    subject_name: subject.name,
-                    confidence: 50,
-                    reasoning: 'Using default topic as fallback'
-                };
+        if (match.topic_id) {
+            matchedTopic = allTopics.find(t => t.id === match.topic_id);
+            if (matchedTopic) {
+                console.log('✅ Found by UUID:', matchedTopic.name);
             }
-            return null;
         }
 
-        // Verify the topic_id exists in our list
-        const matchedTopic = allTopics.find(t => t.id === match.topic_id);
+        // Strategy 2: If UUID invalid, try to find by name
+        if (!matchedTopic && match.topic_name) {
+            console.log('🔍 Trying to find by name:', match.topic_name);
+
+            // Clean both strings for comparison
+            const cleanMatchName = match.topic_name.toLowerCase()
+                .trim()
+                .replace(/\s+/g, ' ')
+                .replace(/[.,\n]/g, '');
+
+            matchedTopic = allTopics.find(t => {
+                const cleanTopicName = t.name.toLowerCase()
+                    .trim()
+                    .replace(/\s+/g, ' ')
+                    .replace(/[.,\n]/g, '');
+
+                return cleanTopicName.includes(cleanMatchName) ||
+                    cleanMatchName.includes(cleanTopicName) ||
+                    cleanTopicName.split(' ').some(word => word.length > 3 && cleanMatchName.includes(word));
+            });
+
+            if (matchedTopic) {
+                console.log('✅ Found by name:', matchedTopic.name);
+            }
+        }
+
+        // Strategy 3: If still not found, use keyword matching on original description
         if (!matchedTopic) {
-            console.log('AI returned invalid topic_id, using first topic as fallback');
+            console.log('🔍 Using keyword matching on description');
 
-            // Fallback to first topic
-            if (allTopics.length > 0) {
-                const defaultTopic = allTopics[0];
-                return {
-                    topic_id: defaultTopic.id,
-                    topic_name: defaultTopic.name,
-                    chapter_id: defaultTopic.chapter_id,
-                    chapter_name: defaultTopic.chapter_name,
-                    subject_name: subject.name,
-                    confidence: 50,
-                    reasoning: 'Using default topic as fallback'
-                };
+            // Extract key terms from description
+            const keywords = topicDescription.toLowerCase()
+                .replace(/[.,\n]/g, ' ')
+                .split(/\s+/)
+                .filter(word => word.length > 3);
+
+            console.log('Keywords:', keywords);
+
+            // Score each topic
+            const scoredTopics = allTopics.map(topic => {
+                const searchText = `${topic.name} ${topic.description || ''}`.toLowerCase();
+                let score = 0;
+
+                keywords.forEach(keyword => {
+                    if (searchText.includes(keyword)) {
+                        score += keyword.length;
+                    }
+                });
+
+                // Bonus for exact name match with AI suggestion
+                if (match.topic_name && searchText.includes(match.topic_name.toLowerCase())) {
+                    score += 50;
+                }
+
+                return { topic, score };
+            });
+
+            // Sort by score and pick best
+            scoredTopics.sort((a, b) => b.score - a.score);
+
+            if (scoredTopics[0] && scoredTopics[0].score > 10) {
+                matchedTopic = scoredTopics[0].topic;
+                console.log('✅ Found by keyword match:', matchedTopic.name, 'score:', scoredTopics[0].score);
             }
-            return null;
         }
 
-        console.log('✅ Found matching topic:', match);
+        // Strategy 4: Try to find by chapter if AI mentioned chapter
+        if (!matchedTopic && match.chapter_name) {
+            console.log('🔍 Trying to find by chapter:', match.chapter_name);
+
+            const chapterTopics = allTopics.filter(t =>
+                t.chapter_name.toLowerCase().includes(match.chapter_name.toLowerCase())
+            );
+
+            if (chapterTopics.length > 0) {
+                matchedTopic = chapterTopics[0];
+                console.log('✅ Found by chapter:', matchedTopic.name);
+            }
+        }
+
+        // Final fallback to first topic
+        if (!matchedTopic) {
+            console.log('⚠️ No match found, using first topic as fallback');
+            matchedTopic = allTopics[0];
+        }
+
+        console.log('✅ Selected topic:', {
+            id: matchedTopic.id,
+            name: matchedTopic.name,
+            chapter: matchedTopic.chapter_name
+        });
+
         return {
             topic_id: matchedTopic.id,
             topic_name: matchedTopic.name,
             chapter_id: matchedTopic.chapter_id,
             chapter_name: matchedTopic.chapter_name,
             subject_name: subject.name,
-            confidence: match.confidence,
-            reasoning: match.reasoning
+            confidence: match?.confidence || 50,
+            reasoning: match?.reasoning || 'Selected based on best match'
         };
+
     } catch (error) {
         console.error('❌ Error in topic matching:', error);
 
