@@ -250,3 +250,89 @@ export async function getTopicsByChapter(chapterId: string) {
     }
     return data;
 }
+
+/**
+ * Fetch companions for a topic, each annotated with whether they have
+ * at least one non-empty transcript in session_history.
+ */
+export async function getCompanionsWithTranscriptsByTopic(topicId: string) {
+    const supabase = createSupabaseAdmin();
+
+    const { data: companions, error } = await supabase
+        .from("companions")
+        .select(`
+            *,
+            session_history (
+                id,
+                transcript
+            )
+        `)
+        .eq("topic_id", topicId)
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        console.error("Error fetching companions with transcripts:", error);
+        return [];
+    }
+
+    return (companions ?? []).map((c: any) => ({
+        ...c,
+        hasTranscript: (c.session_history ?? []).some(
+            (s: any) => Array.isArray(s.transcript) && s.transcript.length > 0
+        ),
+    }));
+}
+
+/**
+ * For each topic in a chapter, return the topic plus:
+ *  - companionCount: how many companions exist
+ *  - hasTranscript: whether any companion has a non-empty transcript
+ * Used by the chapter page to decide which quiz button to show.
+ */
+export async function getTopicsWithCompanionInfoByChapter(chapterId: string) {
+    const supabase = createSupabaseAdmin();
+
+    const { data: topics, error } = await supabase
+        .from("topics")
+        .select(`
+            *,
+            chapters:chapter_id (
+                name,
+                subjects:subject_id (
+                    name,
+                    icon_name,
+                    color_hex
+                )
+            ),
+            companions (
+                id,
+                session_history (
+                    id,
+                    transcript
+                )
+            )
+        `)
+        .eq("chapter_id", chapterId)
+        .order("topic_number", { ascending: true })
+        .order("display_order", { ascending: true });
+
+    if (error) {
+        console.error("Error fetching topics with companion info:", error);
+        return [];
+    }
+
+    return (topics ?? []).map((topic: any) => {
+        const companions = topic.companions ?? [];
+        const hasTranscript = companions.some((c: any) =>
+            (c.session_history ?? []).some(
+                (s: any) => Array.isArray(s.transcript) && s.transcript.length > 0
+            )
+        );
+        const { companions: _companions, ...rest } = topic;
+        return {
+            ...rest,
+            companionCount: companions.length,
+            hasTranscript,
+        };
+    });
+}

@@ -323,9 +323,167 @@ export const getUserQuizzes = async (userId: string, limit = 10) => {
         .limit(limit);
 
     if (error) {
-        console.error('❌ Error fetching user quizzes:', error);
+        console.error('\u274c Error fetching user quizzes:', error);
         throw new Error(error.message);
     }
 
     return data;
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NEW: On-demand quiz generation  (no database rows — questions returned inline)
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { createSupabaseAdmin } from '../supabase';
+
+/** Internal helper: call Groq and parse 5 MCQ questions */
+async function _generateQuestionsFromPrompt(userPrompt: string): Promise<QuizQuestion[]> {
+    const systemPrompt = `You are an expert educator creating multiple-choice quiz questions.
+Always return ONLY a valid JSON object with this exact structure:
+{
+  "questions": [
+    {
+      "question": "The question text?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": 0,
+      "explanation": "Why Option A is correct."
+    }
+  ]
+}
+Rules:
+- Generate exactly 5 questions.
+- Each question must have exactly 4 options.
+- "correctAnswer" is the 0-based index of the correct option (0, 1, 2, or 3).
+- Questions should test understanding, not rote recall.
+- Return ONLY the JSON object, no extra text or markdown.`;
+
+    const completion = await groq.chat.completions.create({
+        messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.4,
+        max_tokens: 2000,
+        response_format: { type: 'json_object' },
+    });
+
+    const raw = completion.choices[0]?.message?.content;
+    if (!raw) throw new Error('No response from AI.');
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed.questions)) throw new Error('Invalid quiz format from AI.');
+
+    return parsed.questions as QuizQuestion[];
+}
+
+/**
+ * Generate quiz questions from a single companion's transcripts.
+ * Called from the [topicId] page companion card quiz button.
+ */
+export async function generateQuizFromCompanionTranscripts(
+    companionId: string
+): Promise<QuizQuestion[]> {
+    const supabase = createSupabaseAdmin();
+
+    const { data: companion, error: cErr } = await supabase
+        .from('companions')
+        .select('name, subject, topic')
+        .eq('id', companionId)
+        .single();
+    if (cErr) throw new Error(cErr.message);
+
+    const { data: sessions, error: sErr } = await supabase
+        .from('session_history')
+        .select('transcript')
+        .eq('companion_id', companionId)
+        .not('transcript', 'is', null);
+    if (sErr) throw new Error(sErr.message);
+
+    const lines = (sessions ?? []).flatMap((s: any) =>
+        Array.isArray(s.transcript)
+            ? s.transcript
+                  .filter((m: any) => m.content?.trim())
+                  .map((m: any) => `${m.role === 'assistant' ? (companion?.name ?? 'Tutor') : 'Student'}: ${m.content}`)
+            : []
+    );
+
+    if (lines.length === 0) throw new Error('No transcript content found for this companion.');
+
+    return _generateQuestionsFromPrompt(
+        `Generate 5 multiple-choice quiz questions based on the following tutoring session transcript.
+Subject: ${companion?.subject ?? 'N/A'} | Topic: ${companion?.topic ?? 'N/A'}
+
+Transcript:
+${lines.join('\n').slice(0, 12000)}`
+    );
+}
+
+/**
+ * Generate quiz from ALL companion transcripts for a topic.
+ * Called from the [chapterId] page "Quiz for Revision" button.
+ */
+export async function generateQuizFromTopicTranscripts(
+    topicId: string,
+    topicName: string
+): Promise<QuizQuestion[]> {
+    const supabase = createSupabaseAdmin();
+
+    const { data: companions, error: cErr } = await supabase
+        .from('companions')
+        .select('id, name, subject')
+        .eq('topic_id', topicId);
+    if (cErr) throw new Error(cErr.message);
+    if (!companions || companions.length === 0) throw new Error('No companions found.');
+
+    const ids = companions.map((c: any) => c.id);
+    const { data: sessions, error: sErr } = await supabase
+        .from('session_history')
+        .select('transcript')
+        .in('companion_id', ids)
+        .not('transcript', 'is', null);
+    if (sErr) throw new Error(sErr.message);
+
+    const lines = (sessions ?? []).flatMap((s: any) =>
+        Array.isArray(s.transcript)
+            ? s.transcript
+                  .filter((m: any) => m.content?.trim())
+                  .map((m: any) => `${m.role === 'assistant' ? 'Tutor' : 'Student'}: ${m.content}`)
+            : []
+    );
+
+    if (lines.length === 0) throw new Error('No transcript content found for this topic.');
+
+    return _generateQuestionsFromPrompt(
+        `Generate 5 multiple-choice quiz questions based on the following tutoring session transcripts for the topic "${topicName}".
+Subject: ${companions[0]?.subject ?? 'N/A'}
+
+Transcript:
+${lines.join('\n').slice(0, 12000)}`
+    );
+}
+
+/**
+ * Generate quiz from AI using topic/board/class for difficulty calibration.
+ * Called from the [chapterId] page "Generate Quiz from AI" button.
+ */
+export async function generateQuizFromAIForTopic(params: {
+    topicName: string;
+    topicDescription?: string;
+    subjectName: string;
+    className: string;
+    boardName: string;
+}): Promise<QuizQuestion[]> {
+    const { topicName, topicDescription, subjectName, className, boardName } = params;
+    return _generateQuestionsFromPrompt(
+        `Generate 5 multiple-choice quiz questions for the following curriculum.
+
+Subject: ${subjectName}
+Topic: ${topicName}${topicDescription ? `\nDescription: ${topicDescription}` : ''}
+Board: ${boardName}
+Class: ${className}
+
+Calibrate difficulty for a ${className} student under the ${boardName} curriculum.
+Focus on conceptual understanding and real-world application.`
+    );
+}

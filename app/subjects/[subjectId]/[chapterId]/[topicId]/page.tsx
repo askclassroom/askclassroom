@@ -1,8 +1,9 @@
-import { getTopicById, getCompanionsByTopic } from '@/lib/actions/curriculum.actions';
+import { getTopicById, getCompanionsWithTranscriptsByTopic } from '@/lib/actions/curriculum.actions';
 import { redirect } from 'next/navigation';
 import { currentUser } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import CompanionCard from '@/components/CompanionCard';
+import QuizButton from '@/components/QuizButton';
 
 export default async function TopicDetailsPage({
     params
@@ -15,7 +16,7 @@ export default async function TopicDetailsPage({
     if (!user) redirect('/sign-in');
 
     const topic = await getTopicById(topicId);
-    const companions = await getCompanionsByTopic(topicId);
+    const companions = await getCompanionsWithTranscriptsByTopic(topicId);
 
     if (!topic) {
         return (
@@ -31,6 +32,8 @@ export default async function TopicDetailsPage({
         );
     }
 
+    const subjectName = (topic.chapters as any)?.subjects?.name ?? '';
+
     return (
         <main className="max-w-7xl mx-auto px-4 py-8">
             {/* Breadcrumb Navigation */}
@@ -38,11 +41,11 @@ export default async function TopicDetailsPage({
                 <Link href="/subjects" className="hover:text-gray-900">Subjects</Link>
                 <span className="mx-2">/</span>
                 <Link href={`/subjects/${subjectId}`} className="hover:text-gray-900">
-                    {topic.chapters?.subjects?.name}
+                    {subjectName}
                 </Link>
                 <span className="mx-2">/</span>
                 <Link href={`/subjects/${subjectId}/${chapterId}`} className="hover:text-gray-900">
-                    {topic.chapters?.name}
+                    {(topic.chapters as any)?.name}
                 </Link>
                 <span className="mx-2">/</span>
                 <span className="text-gray-900 font-medium">{topic.name}</span>
@@ -54,15 +57,15 @@ export default async function TopicDetailsPage({
                     <div>
                         <div className="flex items-center gap-2 mb-2">
                             <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded-full">
-                                Topic {topic.topic_number}
+                                Topic {(topic as any).topic_number}
                             </span>
                             <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
                                 {companions.length} companions
                             </span>
                         </div>
                         <h1 className="text-3xl font-bold mb-3">{topic.name}</h1>
-                        {topic.description && (
-                            <p className="text-gray-600 max-w-2xl">{topic.description}</p>
+                        {(topic as any).description && (
+                            <p className="text-gray-600 max-w-2xl">{(topic as any).description}</p>
                         )}
                     </div>
 
@@ -119,10 +122,17 @@ export default async function TopicDetailsPage({
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {companions.map((companion: any) => (
-                            <CompanionCard
-                                key={companion.id}
-                                {...companion}
-                            />
+                            <div key={companion.id} className="flex flex-col">
+                                <CompanionCard {...companion} />
+                                {/* Quiz for Revision appears only when this companion has transcripts */}
+                                {companion.hasTranscript && (
+                                    <QuizButton
+                                        mode="companion-transcript"
+                                        companionId={companion.id}
+                                        topicName={companion.topic ?? topic.name}
+                                    />
+                                )}
+                            </div>
                         ))}
                     </div>
                 )}

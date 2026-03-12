@@ -930,6 +930,7 @@ import { getUserProfile } from './curriculum.actions';
 interface TopicMatch {
     topic_id: string;
     topic_name: string;
+    chapter_id: string;
     chapter_name: string;
     subject_name: string;
     confidence: number;
