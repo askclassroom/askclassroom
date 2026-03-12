@@ -1716,7 +1716,7 @@ export const createCompanion = async (FormData: any) => {
     const { data, error } = await supabase.from('companions').insert({
         name: FormData.name,
         subject: match.subject_name,
-        topic: match.topic_name,
+        topic: FormData.topic_description, // User's original description
         style: FormData.style,
         voice: FormData.voice,
         duration: FormData.duration,
