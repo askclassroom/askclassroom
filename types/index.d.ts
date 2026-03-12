@@ -25,6 +25,14 @@ type Companion = Models.DocumentList<Models.Document> & {
   duration: number;
   bookmarked: boolean;
   image_keywords?: string[];
+
+  // New hierarchy fields
+  topic_id?: string;
+  chapter_id?: string;
+  subject_id?: string;
+  board_id?: string;
+  class_id?: string;
+  created_at: string;
 };
 
 interface CreateCompanion {
@@ -35,6 +43,13 @@ interface CreateCompanion {
   style: string;
   duration: number;
   image_keywords?: string[];
+
+  // New hierarchy fields
+  topic_id?: string;
+  chapter_id?: string;
+  subject_id?: string;
+  board_id?: string;
+  class_id?: string;
 }
 
 interface GetAllCompanions {
