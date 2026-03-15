@@ -108,7 +108,7 @@ export default async function ChapterDetailsPage({
                             </Link>
 
                             {/* Quiz Buttons — always show AI button; also show revision button if transcripts exist */}
-                            {topic.hasTranscript && (
+                            {/* {topic.hasTranscript && (
                                 <QuizButton
                                     mode="topic-transcript"
                                     topicId={topic.id}
@@ -118,7 +118,7 @@ export default async function ChapterDetailsPage({
                                     className={className}
                                     boardName={boardName}
                                 />
-                            )}
+                            )} */}
                             <QuizButton
                                 mode="topic-ai"
                                 topicId={topic.id}
