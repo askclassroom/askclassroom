@@ -162,7 +162,7 @@ const Footer = () => {
                                 }}
                             >
                                 <Image
-                                    src="/images/logo-png-cropped.svg"
+                                    src="/images/logo-png-dark.svg"
                                     alt="TutorTalkAI Logo"
                                     width={48}
                                     height={48}

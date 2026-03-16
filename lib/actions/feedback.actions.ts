@@ -72,3 +72,68 @@ export async function submitFeedback({
 
     return { success: true };
 }
+
+export type PublicFeedback = {
+    id: string;
+    heading: string | null;
+    comment: string | null;
+    mood: number;
+    mood_label: string;
+    user_name: string;
+    user_image: string | null;
+    created_at: string;
+};
+
+/** Fetch recent feedback for the public Testimonials section.
+ *  User name + profile picture come from Clerk (not the users table). */
+export async function getPublicFeedback(limit = 12): Promise<PublicFeedback[]> {
+    const supabase = createSupabaseAdmin();
+
+    // 1. Fetch raw feedback rows — no join needed
+    const { data, error } = await supabase
+        .from('feedback')
+        .select('id, heading, comment, mood, mood_label, user_id, created_at')
+        .not('comment', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error('Error fetching public feedback:', error);
+        return [];
+    }
+
+    if (!data || data.length === 0) return [];
+
+    // 2. Collect unique Clerk user IDs
+    const uniqueUserIds = [...new Set(data.map((r: any) => r.user_id as string))];
+
+    // 3. Batch-fetch Clerk profiles
+    const { clerkClient } = await import('@clerk/nextjs/server');
+    const client = await clerkClient();
+    const clerkUsers = await client.users.getUserList({ userId: uniqueUserIds, limit: uniqueUserIds.length });
+
+    // 4. Build a lookup map  userId → { name, imageUrl }
+    const userMap = new Map<string, { name: string; imageUrl: string | null }>();
+    for (const u of clerkUsers.data) {
+        const name =
+            `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() ||
+            u.emailAddresses?.[0]?.emailAddress ||
+            'Anonymous';
+        userMap.set(u.id, { name, imageUrl: u.imageUrl ?? null });
+    }
+
+    // 5. Merge and return
+    return data.map((row: any) => {
+        const clerk = userMap.get(row.user_id);
+        return {
+            id: row.id,
+            heading: row.heading,
+            comment: row.comment,
+            mood: row.mood,
+            mood_label: row.mood_label,
+            user_name: clerk?.name ?? 'Anonymous',
+            user_image: clerk?.imageUrl ?? null,
+            created_at: row.created_at,
+        };
+    });
+}

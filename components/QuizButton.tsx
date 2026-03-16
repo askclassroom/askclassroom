@@ -47,13 +47,13 @@ export default function QuizButton({
     const buttonLabel =
         label ??
         (mode === 'companion-transcript' || mode === 'topic-transcript'
-            ? '📝 Quiz for Revision'
-            : '🤖 Generate Quiz from AI');
+            ? 'Quiz from what you learnt'
+            : 'Generate Quiz from this topic');
 
     const buttonClass =
         mode === 'companion-transcript' || mode === 'topic-transcript'
-            ? 'w-full mt-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:opacity-90 transition flex items-center justify-center gap-2'
-            : 'w-full px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:opacity-90 transition flex items-center justify-center gap-2';
+            ? 'w-full mt-2 px-4 py-2 rounded-xl text-sm font-semibold bg-black from-black-500 to-gray-600 text-white hover:opacity-90 transition flex items-center justify-center gap-2'
+            : 'w-full px-4 py-2 rounded-xl text-sm font-semibold bg-black from-black-500 to-gray-600 text-white hover:opacity-90 transition flex items-center justify-center gap-2';
 
     const handleOpen = async () => {
         setOpen(true);
@@ -168,8 +168,8 @@ export default function QuizButton({
                                         {score === questions.length
                                             ? 'Perfect score!'
                                             : score >= 3
-                                            ? 'Great job!'
-                                            : 'Keep practising!'}
+                                                ? 'Great job!'
+                                                : 'Keep practising!'}
                                     </p>
 
                                     {/* Answer review */}
