@@ -40,28 +40,28 @@ export const getAllCompanions = async ({ limit = 100, page = 1, subject, topic }
 }
 
 
-export const createCompanion = async (FormData: CreateCompanion) => {
-    const { userId: author } = await auth();
-    const supabase = createSupabaseClient();
+// export const createCompanion = async (FormData: CreateCompanion) => {
+//     const { userId: author } = await auth();
+//     const supabase = createSupabaseClient();
 
-    let image_keywords: string[] = [];
-    try {
-        const keywordData = await generateImageKeywords(FormData.name, FormData.subject, FormData.topic);
-        image_keywords = keywordData.keywords || [];
-    } catch (e) {
-        console.error("Failed to generate keywords during companion creation:", e);
-    }
+//     let image_keywords: string[] = [];
+//     try {
+//         const keywordData = await generateImageKeywords(FormData.name, FormData.subject, FormData.topic);
+//         image_keywords = keywordData.keywords || [];
+//     } catch (e) {
+//         console.error("Failed to generate keywords during companion creation:", e);
+//     }
 
-    const { data, error } = await supabase.from('companions').insert({
-        ...FormData,
-        author,
-        image_keywords
-    }).select();
+//     const { data, error } = await supabase.from('companions').insert({
+//         ...FormData,
+//         author,
+//         image_keywords
+//     }).select();
 
-    if (error || !data) throw new Error(error?.message || "Failed to create a companion");
+//     if (error || !data) throw new Error(error?.message || "Failed to create a companion");
 
-    return data[0];
-}
+//     return data[0];
+// }
 
 export const getCompanion = async (id: string) => {
     const supabase = createSupabaseClient();
@@ -832,4 +832,908 @@ export const getCompanionVideos = async (companionName: string, subject: string,
         console.error('❌ Error getting companion videos:', error);
         return [];
     }
+};
+
+/**
+ * Get user's subjects directly from database for the form
+ * This ensures no anomalies - subjects come straight from the database
+ */
+export const getUserSubjectsForForm = async () => {
+    const { userId } = await auth();
+    console.log('🔍 getUserSubjectsForForm - userId:', userId);
+    if (!userId) throw new Error('Not authenticated');
+
+    const supabase = createSupabaseClient();
+
+    console.log('📊 Querying users table for ID:', userId);
+
+    // First, get user's board_id and class_id
+    const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('board_id, class_id')
+        .eq('id', userId)
+        .single();
+
+    console.log('📊 Query result - user:', user);
+    console.log('📊 Query result - error:', userError);
+
+    if (userError) {
+        console.error('❌ Error fetching user:', userError);
+        throw new Error('Error fetching user profile');
+    }
+
+    if (!user) {
+        console.log('⚠️ No user found with ID:', userId);
+        console.log('This should not happen - user exists in DB');
+
+        // Let's do a raw query to see if the user exists with a different approach
+        const { data: allUsers, error: allError } = await supabase
+            .from('users')
+            .select('id, name')
+            .limit(5);
+
+        console.log('📊 First 5 users in DB:', allUsers);
+
+        throw new Error('User profile not found. Please contact support.');
+    }
+
+    console.log('✅ User found:', user);
+
+    if (!user.board_id || !user.class_id) {
+        console.log('⚠️ User missing board/class:', user);
+        throw new Error('Please complete your profile with board and class first');
+    }
+
+    // Get subjects directly from database using board_id and class_id
+    const { data: subjects, error: subjectsError } = await supabase
+        .from('subjects')
+        .select(`
+            id,
+            name,
+            slug,
+            icon_name,
+            color_hex,
+            display_order,
+            boards!inner (
+                id,
+                name,
+                code
+            ),
+            classes!inner (
+                id,
+                class_number,
+                display_name
+            )
+        `)
+        .eq('board_id', user.board_id)
+        .eq('class_id', user.class_id)
+        .order('display_order', { ascending: true })
+        .order('name', { ascending: true });
+
+    if (subjectsError) {
+        console.error('Error fetching subjects:', subjectsError);
+        throw new Error('Failed to load subjects');
+    }
+
+    if (!subjects || subjects.length === 0) {
+        console.log('No subjects found for board:', user.board_id, 'class:', user.class_id);
+        return [];
+    }
+
+    return subjects;
+};
+
+// Add these imports at the top
+import { getUserProfile } from './curriculum.actions';
+
+// Add this interface
+interface TopicMatch {
+    topic_id: string;
+    topic_name: string;
+    chapter_id: string;
+    chapter_name: string;
+    subject_name: string;
+    confidence: number;
+    reasoning: string;
+}
+
+/**
+ * Get user's subjects with their board and class context
+ */
+export const getUserSubjects = async () => {
+    const { userId } = await auth();
+    if (!userId) return [];
+
+    const supabase = createSupabaseClient();
+
+    // Get user's board_id and class_id
+    const { data: user } = await supabase
+        .from('users')
+        .select('board_id, class_id')
+        .eq('id', userId)
+        .single();
+
+    if (!user?.board_id || !user?.class_id) return [];
+
+    // Get subjects for user's board and class
+    const { data: subjects } = await supabase
+        .from('subjects')
+        .select('id, name, slug, icon_name, color_hex')
+        .eq('board_id', user.board_id)
+        .eq('class_id', user.class_id)
+        .order('display_order');
+
+    return subjects || [];
+};
+
+/**
+ * Find the best matching topic using AI based on subject and topic description
+ */
+// export const findMatchingTopic = async (
+//     subjectId: string,
+//     topicDescription: string
+// ): Promise<TopicMatch | null> => {
+//     console.log('🔍 Finding matching topic for:', { subjectId, topicDescription });
+
+//     const supabase = createSupabaseClient();
+
+//     // First, get the subject details
+//     const { data: subject, error: subjectError } = await supabase
+//         .from('subjects')
+//         .select('id, name, board_id, class_id')
+//         .eq('id', subjectId)
+//         .single();
+
+//     if (subjectError || !subject) {
+//         console.error('Subject not found in database:', subjectError);
+//         return null;
+//     }
+
+//     // Get all chapters and topics for this subject
+//     const { data: chapters, error: chaptersError } = await supabase
+//         .from('chapters')
+//         .select(`
+//             id,
+//             name,
+//             chapter_number,
+//             topics (
+//                 id,
+//                 name,
+//                 topic_number,
+//                 description
+//             )
+//         `)
+//         .eq('subject_id', subjectId)
+//         .order('chapter_number');
+
+//     if (chaptersError) {
+//         console.error('Error fetching chapters:', chaptersError);
+//         return null;
+//     }
+
+//     if (!chapters || chapters.length === 0) {
+//         console.log('No chapters found for this subject');
+//         return null;
+//     }
+
+//     // Flatten topics with their chapter context
+//     const allTopics = chapters.flatMap(chapter =>
+//         (chapter.topics || []).map((topic: any) => ({
+//             ...topic,
+//             chapter_id: chapter.id,
+//             chapter_name: chapter.name,
+//             chapter_number: chapter.chapter_number,
+//             subject_name: subject.name,
+//             full_context: `${chapter.name} - ${topic.name}`,
+//             searchable_text: `${chapter.name} ${topic.name} ${topic.description || ''}`.toLowerCase()
+//         }))
+//     );
+
+//     if (allTopics.length === 0) {
+//         console.log('No topics found for this subject');
+//         return null;
+//     }
+
+//     // Prepare topics for AI matching
+//     const topicsList = allTopics.map(t =>
+//         `- ${t.chapter_name} / ${t.name}: ${t.description || 'No description'}`
+//     ).join('\n');
+
+//     const prompt = `
+// You are an expert curriculum advisor. Your task is to find the BEST matching topic from our curriculum database based on a user's description.
+
+// User's Subject: ${subject.name}
+// User's Topic Description: "${topicDescription}"
+
+// Available topics in our database for this subject:
+// ${topicsList}
+
+// Analyze the user's description and find the single most relevant topic from the list above.
+
+// Return a JSON object with:
+// 1. topic_id: The UUID of the best matching topic
+// 2. topic_name: The name of that topic
+// 3. chapter_name: The chapter this topic belongs to
+// 4. subject_name: The subject name
+// 5. confidence: A number from 0-100 indicating how confident you are this is the right match
+// 6. reasoning: Brief explanation of why this topic matches
+
+// Rules:
+// - If multiple topics seem relevant, choose the one with the highest relevance
+// - If no topic seems relevant (confidence < 30), return null
+// - Be strict about matching - it's better to return no match than a bad match
+
+// Return ONLY the JSON object, no other text.
+// `;
+
+//     try {
+//         const completion = await groq.chat.completions.create({
+//             messages: [
+//                 {
+//                     role: "system",
+//                     content: "You are an expert curriculum matching AI. Return only valid JSON."
+//                 },
+//                 {
+//                     role: "user",
+//                     content: prompt
+//                 }
+//             ],
+//             model: "llama-3.3-70b-versatile",
+//             temperature: 0.3,
+//             max_tokens: 500,
+//             response_format: { type: "json_object" }
+//         });
+
+//         const response = completion.choices[0]?.message?.content;
+//         if (!response) throw new Error('No response from Groq');
+
+//         const match = JSON.parse(response);
+
+//         // Validate confidence threshold
+//         if (match.confidence < 30) {
+//             console.log('Match confidence too low:', match.confidence);
+//             return null;
+//         }
+
+//         // Verify the topic_id exists in our list
+//         const matchedTopic = allTopics.find(t => t.id === match.topic_id);
+//         if (!matchedTopic) {
+//             console.log('AI returned invalid topic_id');
+//             return null;
+//         }
+
+//         console.log('✅ Found matching topic:', match);
+//         return match;
+//     } catch (error) {
+//         console.error('❌ Error in topic matching:', error);
+//         return null;
+//     }
+// };
+
+/**
+ * Find the best matching topic using AI based on subject and topic description
+ */
+// export const findMatchingTopic = async (
+//     subjectId: string,
+//     topicDescription: string
+// ): Promise<TopicMatch | null> => {
+//     console.log('🔍 Finding matching topic for:', { subjectId, topicDescription });
+
+//     const supabase = createSupabaseClient();
+
+//     // First, get the subject details
+//     const { data: subject, error: subjectError } = await supabase
+//         .from('subjects')
+//         .select('id, name')
+//         .eq('id', subjectId)
+//         .single();
+
+//     if (subjectError || !subject) {
+//         console.error('Subject not found:', subjectError);
+//         return null;
+//     }
+
+//     // Get all chapters and topics for this subject
+//     const { data: chapters, error: chaptersError } = await supabase
+//         .from('chapters')
+//         .select(`
+//             id,
+//             name,
+//             chapter_number,
+//             topics (
+//                 id,
+//                 name,
+//                 topic_number,
+//                 description
+//             )
+//         `)
+//         .eq('subject_id', subjectId)
+//         .order('chapter_number');
+
+//     if (chaptersError || !chapters) {
+//         console.error('Error fetching chapters:', chaptersError);
+//         return null;
+//     }
+
+//     // Flatten topics with their chapter context
+//     const allTopics = chapters.flatMap(chapter =>
+//         (chapter.topics || []).map((topic: any) => ({
+//             id: topic.id,
+//             name: topic.name,
+//             description: topic.description || '',
+//             chapter_id: chapter.id,
+//             chapter_name: chapter.name,
+//             chapter_number: chapter.chapter_number,
+//             subject_name: subject.name,
+//             full_context: `${chapter.name} - ${topic.name}`,
+//             searchable_text: `${chapter.name} ${topic.name} ${topic.description || ''}`.toLowerCase()
+//         }))
+//     );
+
+//     if (allTopics.length === 0) {
+//         console.log('No topics found for this subject');
+
+//         // Return the first chapter as fallback so user can still create companion
+//         if (chapters.length > 0) {
+//             const firstChapter = chapters[0];
+//             console.log('Using first chapter as fallback');
+//             return {
+//                 topic_id: null,
+//                 topic_name: 'General',
+//                 chapter_id: firstChapter.id,
+//                 chapter_name: firstChapter.name,
+//                 subject_name: subject.name,
+//                 confidence: 50,
+//                 reasoning: 'Using general chapter topic'
+//             };
+//         }
+//         return null;
+//     }
+
+//     // Log all available topics for debugging
+//     console.log('Available topics:', allTopics.map(t => ({
+//         id: t.id,
+//         name: t.name,
+//         chapter: t.chapter_name
+//     })));
+
+//     // Prepare topics for AI matching
+//     const topicsList = allTopics.map(t =>
+//         `- ${t.chapter_name} / ${t.name}: ${t.description || 'No description'}`
+//     ).join('\n');
+
+//     const prompt = `
+// You are an expert curriculum advisor. Find the BEST matching topic from our database.
+
+// Subject: ${subject.name}
+// User's Topic Description: "${topicDescription}"
+
+// Available topics (USE THESE EXACT IDs - DO NOT CREATE NEW ONES):
+// ${topicsList}
+
+// Return a JSON object with:
+// {
+//     "topic_id": "the EXACT UUID from the list above that best matches",
+//     "topic_name": "name of that topic",
+//     "chapter_name": "chapter this topic belongs to",
+//     "subject_name": "${subject.name}",
+//     "confidence": 0-100,
+//     "reasoning": "brief explanation"
+// }
+
+// CRITICAL RULES:
+// - The topic_id MUST be one of the IDs listed above
+// - DO NOT generate fake UUIDs like "a1b2c3d4..."
+// - Copy the ID exactly as shown
+// - If multiple topics match, choose the most relevant one
+// - If confidence < 30, set topic_id to null
+// - Return ONLY the JSON object, no other text
+// `;
+
+//     try {
+//         const completion = await groq.chat.completions.create({
+//             messages: [
+//                 {
+//                     role: "system",
+//                     content: "You are an expert curriculum matching AI. Return only valid JSON."
+//                 },
+//                 {
+//                     role: "user",
+//                     content: prompt
+//                 }
+//             ],
+//             model: "openai/gpt-oss-120b",
+//             temperature: 0.3,
+//             max_tokens: 500,
+//             response_format: { type: "json_object" }
+//         });
+
+//         const response = completion.choices[0]?.message?.content;
+//         if (!response) throw new Error('No response from Groq');
+
+//         const match = JSON.parse(response);
+//         console.log('AI match response:', match);
+
+//         // If AI returns null topic_id or confidence too low
+//         if (!match.topic_id || match.confidence < 30) {
+//             console.log('No good match found, confidence:', match.confidence);
+
+//             // Fallback: use the first topic as default
+//             if (allTopics.length > 0) {
+//                 const defaultTopic = allTopics[0];
+//                 console.log('Using default topic:', defaultTopic.name);
+//                 return {
+//                     topic_id: defaultTopic.id,
+//                     topic_name: defaultTopic.name,
+//                     chapter_id: defaultTopic.chapter_id,
+//                     chapter_name: defaultTopic.chapter_name,
+//                     subject_name: subject.name,
+//                     confidence: 50,
+//                     reasoning: 'Using default topic as fallback'
+//                 };
+//             }
+//             return null;
+//         }
+
+//         // Verify the topic_id exists in our list
+//         const matchedTopic = allTopics.find(t => t.id === match.topic_id);
+//         if (!matchedTopic) {
+//             console.log('AI returned invalid topic_id, using first topic as fallback');
+
+//             // Fallback to first topic
+//             if (allTopics.length > 0) {
+//                 const defaultTopic = allTopics[0];
+//                 return {
+//                     topic_id: defaultTopic.id,
+//                     topic_name: defaultTopic.name,
+//                     chapter_id: defaultTopic.chapter_id,
+//                     chapter_name: defaultTopic.chapter_name,
+//                     subject_name: subject.name,
+//                     confidence: 50,
+//                     reasoning: 'Using default topic as fallback'
+//                 };
+//             }
+//             return null;
+//         }
+
+//         console.log('✅ Found matching topic:', match);
+//         return {
+//             topic_id: matchedTopic.id,
+//             topic_name: matchedTopic.name,
+//             chapter_id: matchedTopic.chapter_id,
+//             chapter_name: matchedTopic.chapter_name,
+//             subject_name: subject.name,
+//             confidence: match.confidence,
+//             reasoning: match.reasoning
+//         };
+//     } catch (error) {
+//         console.error('❌ Error in topic matching:', error);
+
+//         // Fallback to first topic on error
+//         if (allTopics.length > 0) {
+//             const defaultTopic = allTopics[0];
+//             console.log('Error fallback to topic:', defaultTopic.name);
+//             return {
+//                 topic_id: defaultTopic.id,
+//                 topic_name: defaultTopic.name,
+//                 chapter_id: defaultTopic.chapter_id,
+//                 chapter_name: defaultTopic.chapter_name,
+//                 subject_name: subject.name,
+//                 confidence: 50,
+//                 reasoning: 'Fallback due to AI error'
+//             };
+//         }
+//         return null;
+//     }
+// };
+
+/**
+ * Find the best matching topic using AI based on subject and topic description
+ */
+export const findMatchingTopic = async (
+    subjectId: string,
+    topicDescription: string
+): Promise<TopicMatch | null> => {
+    console.log('🔍 Finding matching topic for:', { subjectId, topicDescription });
+
+    const supabase = createSupabaseClient();
+
+    // First, get the subject details
+    const { data: subject, error: subjectError } = await supabase
+        .from('subjects')
+        .select('id, name')
+        .eq('id', subjectId)
+        .single();
+
+    if (subjectError || !subject) {
+        console.error('Subject not found:', subjectError);
+        return null;
+    }
+
+    // Get all chapters and topics for this subject
+    const { data: chapters, error: chaptersError } = await supabase
+        .from('chapters')
+        .select(`
+            id,
+            name,
+            chapter_number,
+            topics (
+                id,
+                name,
+                topic_number,
+                description
+            )
+        `)
+        .eq('subject_id', subjectId)
+        .order('chapter_number');
+
+    if (chaptersError || !chapters) {
+        console.error('Error fetching chapters:', chaptersError);
+        return null;
+    }
+
+    // Flatten topics with their chapter context
+    const allTopics = chapters.flatMap(chapter =>
+        (chapter.topics || []).map((topic: any) => ({
+            id: topic.id,
+            name: topic.name,
+            description: topic.description || '',
+            chapter_id: chapter.id,
+            chapter_name: chapter.name,
+            chapter_number: chapter.chapter_number,
+            subject_name: subject.name,
+            full_context: `${chapter.name} - ${topic.name}`,
+            searchable_text: `${chapter.name} ${topic.name} ${topic.description || ''}`.toLowerCase()
+        }))
+    );
+
+    if (allTopics.length === 0) {
+        console.log('No topics found for this subject');
+
+        // Return the first chapter as fallback so user can still create companion
+        if (chapters.length > 0) {
+            const firstChapter = chapters[0];
+            console.log('Using first chapter as fallback');
+            return {
+                topic_id: null,
+                topic_name: 'General',
+                chapter_id: firstChapter.id,
+                chapter_name: firstChapter.name,
+                subject_name: subject.name,
+                confidence: 50,
+                reasoning: 'Using general chapter topic'
+            };
+        }
+        return null;
+    }
+
+    // Log all available topics for debugging
+    console.log('Available topics:', allTopics.map(t => ({
+        id: t.id,
+        name: t.name,
+        chapter: t.chapter_name
+    })));
+
+    // Prepare topics for AI matching - INCLUDE THE ACTUAL UUIDs
+    const topicsList = allTopics.map(t =>
+        `ID: ${t.id} | Chapter: ${t.chapter_name} | Topic: ${t.name} | Description: ${t.description || 'No description'}`
+    ).join('\n');
+
+    const prompt = `
+You are an expert curriculum advisor. Find the BEST matching topic from our database.
+
+Subject: ${subject.name}
+User's Topic Description: "${topicDescription}"
+
+Available topics (USE THESE EXACT IDs - DO NOT CREATE NEW ONES):
+${topicsList}
+
+Return a JSON object with:
+{
+    "topic_id": "the EXACT UUID from the list above that best matches",
+    "topic_name": "name of that topic",
+    "chapter_name": "chapter this topic belongs to",
+    "subject_name": "${subject.name}",
+    "confidence": 0-100,
+    "reasoning": "brief explanation"
+}
+
+CRITICAL RULES:
+- The topic_id MUST be one of the IDs listed above
+- DO NOT generate fake UUIDs like "a1b2c3d4..."
+- Copy the ID exactly as shown
+- If multiple topics match, choose the most relevant one
+- If confidence < 30, set topic_id to null
+- Return ONLY the JSON object, no other text
+`;
+
+    try {
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an expert curriculum matching AI. Return only valid JSON."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            model: "openai/gpt-oss-120b",
+            temperature: 0.3,
+            max_tokens: 500,
+            response_format: { type: "json_object" }
+        });
+
+        const response = completion.choices[0]?.message?.content;
+        if (!response) throw new Error('No response from Groq');
+
+        const match = JSON.parse(response);
+        console.log('AI match response:', match);
+
+        // Strategy 1: Check if the ID is valid
+        let matchedTopic = null;
+
+        if (match.topic_id) {
+            matchedTopic = allTopics.find(t => t.id === match.topic_id);
+            if (matchedTopic) {
+                console.log('✅ Found by UUID:', matchedTopic.name);
+            }
+        }
+
+        // Strategy 2: If UUID invalid, try to find by name
+        if (!matchedTopic && match.topic_name) {
+            console.log('🔍 Trying to find by name:', match.topic_name);
+
+            // Clean both strings for comparison
+            const cleanMatchName = match.topic_name.toLowerCase()
+                .trim()
+                .replace(/\s+/g, ' ')
+                .replace(/[.,\n]/g, '');
+
+            matchedTopic = allTopics.find(t => {
+                const cleanTopicName = t.name.toLowerCase()
+                    .trim()
+                    .replace(/\s+/g, ' ')
+                    .replace(/[.,\n]/g, '');
+
+                return cleanTopicName.includes(cleanMatchName) ||
+                    cleanMatchName.includes(cleanTopicName) ||
+                    cleanTopicName.split(' ').some(word => word.length > 3 && cleanMatchName.includes(word));
+            });
+
+            if (matchedTopic) {
+                console.log('✅ Found by name:', matchedTopic.name);
+            }
+        }
+
+        // Strategy 3: If still not found, use keyword matching on original description
+        if (!matchedTopic) {
+            console.log('🔍 Using keyword matching on description');
+
+            // Extract key terms from description
+            const keywords = topicDescription.toLowerCase()
+                .replace(/[.,\n]/g, ' ')
+                .split(/\s+/)
+                .filter(word => word.length > 3);
+
+            console.log('Keywords:', keywords);
+
+            // Score each topic
+            const scoredTopics = allTopics.map(topic => {
+                const searchText = `${topic.name} ${topic.description || ''}`.toLowerCase();
+                let score = 0;
+
+                keywords.forEach(keyword => {
+                    if (searchText.includes(keyword)) {
+                        score += keyword.length;
+                    }
+                });
+
+                // Bonus for exact name match with AI suggestion
+                if (match.topic_name && searchText.includes(match.topic_name.toLowerCase())) {
+                    score += 50;
+                }
+
+                return { topic, score };
+            });
+
+            // Sort by score and pick best
+            scoredTopics.sort((a, b) => b.score - a.score);
+
+            if (scoredTopics[0] && scoredTopics[0].score > 10) {
+                matchedTopic = scoredTopics[0].topic;
+                console.log('✅ Found by keyword match:', matchedTopic.name, 'score:', scoredTopics[0].score);
+            }
+        }
+
+        // Strategy 4: Try to find by chapter if AI mentioned chapter
+        if (!matchedTopic && match.chapter_name) {
+            console.log('🔍 Trying to find by chapter:', match.chapter_name);
+
+            const chapterTopics = allTopics.filter(t =>
+                t.chapter_name.toLowerCase().includes(match.chapter_name.toLowerCase())
+            );
+
+            if (chapterTopics.length > 0) {
+                matchedTopic = chapterTopics[0];
+                console.log('✅ Found by chapter:', matchedTopic.name);
+            }
+        }
+
+        // Final fallback to first topic
+        if (!matchedTopic) {
+            console.log('⚠️ No match found, using first topic as fallback');
+            matchedTopic = allTopics[0];
+        }
+
+        console.log('✅ Selected topic:', {
+            id: matchedTopic.id,
+            name: matchedTopic.name,
+            chapter: matchedTopic.chapter_name
+        });
+
+        return {
+            topic_id: matchedTopic.id,
+            topic_name: matchedTopic.name,
+            chapter_id: matchedTopic.chapter_id,
+            chapter_name: matchedTopic.chapter_name,
+            subject_name: subject.name,
+            confidence: match?.confidence || 50,
+            reasoning: match?.reasoning || 'Selected based on best match'
+        };
+
+    } catch (error) {
+        console.error('❌ Error in topic matching:', error);
+
+        // Fallback to first topic on error
+        if (allTopics.length > 0) {
+            const defaultTopic = allTopics[0];
+            console.log('Error fallback to topic:', defaultTopic.name);
+            return {
+                topic_id: defaultTopic.id,
+                topic_name: defaultTopic.name,
+                chapter_id: defaultTopic.chapter_id,
+                chapter_name: defaultTopic.chapter_name,
+                subject_name: subject.name,
+                confidence: 50,
+                reasoning: 'Fallback due to AI error'
+            };
+        }
+        return null;
+    }
+};
+/**
+ * Updated createCompanion function with AI topic matching
+ */
+// export const createCompanion = async (FormData: any) => {
+//     const { userId: author } = await auth();
+//     if (!author) throw new Error('Not authenticated');
+
+//     const supabase = createSupabaseClient();
+
+//     // Get user's board and class info
+//     const { data: user } = await supabase
+//         .from('users')
+//         .select('board_id, class_id')
+//         .eq('id', author)
+//         .single();
+
+//     if (!user?.board_id || !user?.class_id) {
+//         throw new Error('Please complete your profile with board and class first');
+//     }
+
+//     // Find matching topic using AI
+//     const match = await findMatchingTopic(FormData.subject_id, FormData.topic_description);
+
+//     if (!match) {
+//         throw new Error('Could not find a matching topic in our curriculum. Please try a more specific description.');
+//     }
+
+//     // Get the full topic details to get chapter_id
+//     const { data: topic } = await supabase
+//         .from('topics')
+//         .select('chapter_id')
+//         .eq('id', match.topic_id)
+//         .single();
+
+//     // Generate image keywords
+//     let image_keywords: string[] = [];
+//     try {
+//         const keywordData = await generateImageKeywords(
+//             FormData.name,
+//             FormData.subject_id,
+//             match.topic_name
+//         );
+//         image_keywords = keywordData.keywords || [];
+//     } catch (e) {
+//         console.error("Failed to generate keywords:", e);
+//     }
+
+//     // Create companion with all hierarchy IDs
+//     const { data, error } = await supabase.from('companions').insert({
+//         name: FormData.name,
+//         subject: match.subject_name, // Keep for backward compatibility
+//         topic: match.topic_name, // Keep for backward compatibility
+//         style: FormData.style,
+//         voice: FormData.voice,
+//         duration: FormData.duration,
+//         author,
+//         image_keywords,
+//         // New hierarchy fields
+//         topic_id: match.topic_id,
+//         chapter_id: topic?.chapter_id,
+//         subject_id: FormData.subject_id,
+//         board_id: user.board_id,
+//         class_id: user.class_id
+//     }).select();
+
+//     if (error || !data) {
+//         console.error('Error creating companion:', error);
+//         throw new Error(error?.message || "Failed to create a companion");
+//     }
+
+//     return data[0];
+// };
+
+export const createCompanion = async (FormData: any) => {
+    const { userId: author } = await auth();
+    if (!author) throw new Error('Not authenticated');
+
+    const supabase = createSupabaseClient();
+
+    // Get user's board and class info
+    const { data: user } = await supabase
+        .from('users')
+        .select('board_id, class_id')
+        .eq('id', author)
+        .single();
+
+    if (!user?.board_id || !user?.class_id) {
+        throw new Error('Please complete your profile with board and class first');
+    }
+
+    // Find matching topic using AI
+    const match = await findMatchingTopic(FormData.subject_id, FormData.topic_description);
+
+    if (!match) {
+        throw new Error('Could not find a matching topic. Please try a more specific description.');
+    }
+
+    // Generate image keywords
+    let image_keywords: string[] = [];
+    try {
+        const keywordData = await generateImageKeywords(
+            FormData.name,
+            FormData.subject_id,
+            match.topic_name
+        );
+        image_keywords = keywordData.keywords || [];
+    } catch (e) {
+        console.error("Failed to generate keywords:", e);
+    }
+
+    // Create companion with all hierarchy IDs
+    const { data, error } = await supabase.from('companions').insert({
+        name: FormData.name,
+        subject: match.subject_name,
+        topic: FormData.topic_description, // User's original description
+        style: FormData.style,
+        voice: FormData.voice,
+        duration: FormData.duration,
+        author,
+        image_keywords,
+        topic_id: match.topic_id,
+        chapter_id: match.chapter_id,
+        subject_id: FormData.subject_id,
+        board_id: user.board_id,
+        class_id: user.class_id
+    }).select();
+
+    if (error || !data) {
+        console.error('Error creating companion:', error);
+        throw new Error(error?.message || "Failed to create a companion");
+    }
+
+    return data[0];
 };

@@ -398,7 +398,7 @@ const HomePage = async () => {
               }
             />
             <QuickActionCard
-              href="/practise"
+              href="/subjects"
               title="Quiz & Practice"
               description="Test your knowledge with quizzes"
               accent="#02AAA0"
