@@ -16,10 +16,46 @@ const youtube = google.youtube({
     auth: process.env.YOUTUBE_API_KEY
 })
 
-export const getAllCompanions = async ({ limit = 100, page = 1, subject, topic }: GetAllCompanions) => {
+// export const getAllCompanions = async ({ limit = 100, page = 1, subject, topic }: GetAllCompanions) => {
+//     const supabase = createSupabaseClient();
+
+//     let query = supabase.from('companions').select();
+
+//     if (subject && topic) {
+//         query = query.ilike('subject', `%${subject}%`)
+//             .or(`topic.ilike.%${topic}%,name.ilike.%${topic}%`)
+//     } else if (subject) {
+//         query = query.ilike('subject', `%${subject}%`)
+//     } else if (topic) {
+//         query = query.or(`topic.ilike.%${topic}%,name.ilike.%${topic}%`)
+//     }
+
+//     query = query.range((page - 1) * limit, page * limit - 1);
+
+//     const { data: companions, error } = await query;
+
+//     if (error) throw new Error(error.message);
+
+//     return companions;
+// }
+
+// Update in lib/actions/companion.actions.ts
+
+export const getAllCompanions = async ({
+    limit = 100,
+    page = 1,
+    subject,
+    topic,
+    userId // Add this parameter
+}: GetAllCompanions & { userId?: string }) => {
     const supabase = createSupabaseClient();
 
     let query = supabase.from('companions').select();
+
+    // Filter by user if userId is provided
+    if (userId) {
+        query = query.eq('author', userId);
+    }
 
     if (subject && topic) {
         query = query.ilike('subject', `%${subject}%`)
@@ -38,7 +74,6 @@ export const getAllCompanions = async ({ limit = 100, page = 1, subject, topic }
 
     return companions;
 }
-
 
 // export const createCompanion = async (FormData: CreateCompanion) => {
 //     const { userId: author } = await auth();
@@ -1717,7 +1752,7 @@ Example: math-genius-derivatives-practice
         const slug = completion.choices[0]?.message?.content?.trim() || "";
         // Clean up any potential quotes or invalid characters AI might have added
         const cleanedSlug = slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-        
+
         console.log('✅ Generated SEO slug:', cleanedSlug);
         return cleanedSlug;
     } catch (error) {
@@ -1792,4 +1827,58 @@ export const createCompanion = async (FormData: any) => {
     }
 
     return data[0];
+};
+
+// Add to lib/actions/companion.actions.ts
+
+/**
+ * Delete a companion and all related data (cascade delete)
+ * This will delete:
+ * - The companion itself
+ * - All session_history entries (due to ON DELETE CASCADE)
+ * - All quizzes (due to ON DELETE CASCADE from session_history)
+ * - All quiz_answers (due to ON DELETE CASCADE from quizzes)
+ */
+export const deleteCompanion = async (companionId: string) => {
+    const { userId } = await auth();
+    if (!userId) throw new Error('Not authenticated');
+
+    const supabase = createSupabaseClient();
+
+    // First verify that the user owns this companion
+    const { data: companion, error: fetchError } = await supabase
+        .from('companions')
+        .select('author')
+        .eq('id', companionId)
+        .single();
+
+    if (fetchError) {
+        console.error('Error fetching companion:', fetchError);
+        throw new Error('Companion not found');
+    }
+
+    if (companion.author !== userId) {
+        throw new Error('You do not have permission to delete this companion');
+    }
+
+    // Delete the companion - due to foreign key constraints with CASCADE,
+    // this will automatically delete:
+    // - All session_history records (which will cascade to quizzes and quiz_answers)
+    // - All bookmarks
+    // - All learning_sessions
+    const { error: deleteError } = await supabase
+        .from('companions')
+        .delete()
+        .eq('id', companionId);
+
+    if (deleteError) {
+        console.error('Error deleting companion:', deleteError);
+        throw new Error('Failed to delete companion');
+    }
+
+    // Revalidate paths to update UI
+    revalidatePath('/companions');
+    revalidatePath('/dashboard');
+
+    return { success: true };
 };

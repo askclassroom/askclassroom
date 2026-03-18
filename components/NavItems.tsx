@@ -45,7 +45,8 @@ const NavItems = () => {
     const items = [
         { href: '/homepage', label: 'Home', icon: Home },
         { href: '/companions', label: 'Companions', icon: Users },
-        { href: '/subjects', label: 'Subjects', icon: BookOpen },
+        { href: '/subjects', label: 'Quizzes', icon: BookOpen },
+        { href: '/ask-doubt', label: 'HomeWork Help', icon: BookOpen },
         { href: '/my-journey', label: 'My Journey', icon: BookOpen },
         { href: '/my-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     ];
