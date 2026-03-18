@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.37.1",
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
+    "@huggingface/inference": "^4.13.15",
     "@jsmastery/utils": "^1.0.2",
     "@matejmazur/react-katex": "^3.1.3",
     "@mdi/js": "^7.4.47",

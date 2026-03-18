@@ -83,7 +83,8 @@ TutorTalkAI is a modern, AI-powered educational platform built with Next.js. It 
 - **Permission gating** — companion creation is gated by subscription plan (3, 10, or 15 companion limit based on Clerk plan/feature flags).
 
 ### 11. Landing Page & Marketing Site *(NEW)*
-- **Hero section** — `Hero.tsx` presents the platform with a headline, feature badge, CTA buttons, and a feature card grid.
+- **Hero section** — `Hero.tsx` presents the platform with a headline, feature badge, CTA buttons.
+- **Learning Features section** — `FourWaysToLearn.tsx` showcases 6 key educational features of the platform in a card grid.
 - **Branded navbar** — updated `Navbar.tsx` with the TutorTalkAI logo + tagline ("Support Beyond The Classroom").
 - **Homepage route** — `/homepage` shows popular companions and recently completed sessions alongside a CTA block.
 - **Root page** — `/` now serves the marketing Hero landing page for unauthenticated visitors.

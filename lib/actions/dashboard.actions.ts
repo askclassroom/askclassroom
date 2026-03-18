@@ -5,6 +5,15 @@ import { createSupabaseClient } from "../supabase";
 import { createClient } from "@supabase/supabase-js";
 import { subDays, startOfDay, endOfDay, differenceInDays, format } from "date-fns";
 
+export type SubjectAnalytics = {
+    subject: string;
+    totalTimeMinutes: number;
+    sessionsCount: number;
+    averageQuizScore: number;
+    quizzesTaken: number;
+    scorePercentage: number;
+};
+
 export type StudentDashboardData = {
     weeklyLearningTime: number; // in minutes
     sessionsCompletedThisWeek: number;
@@ -20,6 +29,10 @@ export type StudentDashboardData = {
     totalSessionsAllTime: number;
     totalLearningTimeAllTime: number; // in minutes
     favoriteSubject: string;
+
+    // Subject Analytics
+    strongSubject: SubjectAnalytics | null;
+    weakSubject: SubjectAnalytics | null;
 
     // Parental Controls Data
     platformActiveMinutesToday: number;
@@ -340,6 +353,207 @@ export const updateParentalSettings = async (userId: string, email: string, noti
     }
 };
 
+// Get Subject Analytics (Strong / Weak Subjects)
+// const getSubjectAnalytics = async (userId: string): Promise<{ strongSubject: SubjectAnalytics | null, weakSubject: SubjectAnalytics | null }> => {
+//     const supabase = createSupabaseClient();
+
+//     // Fetch all learning sessions with subjects
+//     const { data: sessions } = await supabase
+//         .from('learning_sessions')
+//         .select('id, subject, duration_seconds')
+//         .eq('user_id', userId)
+//         .not('subject', 'is', null);
+
+//     if (!sessions || sessions.length === 0) {
+//         return { strongSubject: null, weakSubject: null };
+//     }
+
+//     // Fetch quizzes linked to these sessions
+//     const { data: quizzes } = await supabase
+//         .from('quizzes')
+//         .select('score, status, session_id')
+//         .eq('status', 'completed');
+
+//     // Group data by subject
+//     const subjectMap: Record<string, SubjectAnalytics> = {};
+
+//     sessions.forEach(session => {
+//         if (!subjectMap[session.subject]) {
+//             subjectMap[session.subject] = {
+//                 subject: session.subject,
+//                 totalTimeMinutes: 0,
+//                 sessionsCount: 0,
+//                 averageQuizScore: 0,
+//                 quizzesTaken: 0,
+//                 scorePercentage: 0
+//             };
+//         }
+//         subjectMap[session.subject].totalTimeMinutes += Math.round((session.duration_seconds || 0) / 60);
+//         subjectMap[session.subject].sessionsCount += 1;
+//     });
+
+//     // Add quiz scores
+//     if (quizzes) {
+//         quizzes.forEach(quiz => {
+//             const session = sessions.find(s => s.id === quiz.session_id);
+//             if (session && session.subject && typeof quiz.score === 'number' && subjectMap[session.subject]) {
+//                 subjectMap[session.subject].averageQuizScore += quiz.score;
+//                 subjectMap[session.subject].quizzesTaken += 1;
+//             }
+//         });
+//     }
+
+//     // Calculate averages and percentages
+//     Object.values(subjectMap).forEach(stat => {
+//         if (stat.quizzesTaken > 0) {
+//             stat.averageQuizScore = stat.averageQuizScore / stat.quizzesTaken;
+//             // Assuming max score is 5 for multiple choice questions
+//             stat.scorePercentage = Math.round((stat.averageQuizScore / 5) * 100);
+//         } else {
+//             stat.averageQuizScore = 0;
+//             stat.scorePercentage = 0;
+//         }
+//     });
+
+//     const subjectsArray = Object.values(subjectMap);
+//     if (subjectsArray.length === 0) return { strongSubject: null, weakSubject: null };
+
+//     // Determine strong/weak by a combination metric (or just score percentage / time)
+//     // Formula: ScorePercentage * 0.7 + (Time / MaxTime) * 30
+//     const maxTime = Math.max(...subjectsArray.map(s => s.totalTimeMinutes), 1);
+
+//     // Sort logic
+//     subjectsArray.sort((a, b) => {
+//         const scoreA = (a.scorePercentage * 0.7) + ((a.totalTimeMinutes / maxTime) * 100 * 0.3);
+//         const scoreB = (b.scorePercentage * 0.7) + ((b.totalTimeMinutes / maxTime) * 100 * 0.3);
+//         return scoreB - scoreA; // Descending mapping
+//     });
+
+//     const strongSubject = subjectsArray.length > 0 ? subjectsArray[0] : null;
+//     const weakSubject = subjectsArray.length > 1 ? subjectsArray[subjectsArray.length - 1] : subjectsArray.length > 0 ? subjectsArray[0] : null;
+
+//     return { strongSubject, weakSubject };
+// };
+
+// Get Subject Analytics (Strong / Weak Subjects)
+const getSubjectAnalytics = async (userId: string): Promise<{ strongSubject: SubjectAnalytics | null, weakSubject: SubjectAnalytics | null }> => {
+    const supabase = createSupabaseClient();
+
+    // Fetch all learning sessions with subjects
+    const { data: sessions } = await supabase
+        .from('learning_sessions')
+        .select('id, subject, duration_seconds')
+        .eq('user_id', userId)
+        .not('subject', 'is', null);
+
+    if (!sessions || sessions.length === 0) {
+        return { strongSubject: null, weakSubject: null };
+    }
+
+    // First get all session_history ids for this user
+    const { data: sessionHistory } = await supabase
+        .from('session_history')
+        .select('id')
+        .eq('user_id', userId);
+
+    const sessionHistoryIds = sessionHistory?.map(sh => sh.id) || [];
+
+    // Fetch quizzes linked to session_history
+    const { data: quizzes } = await supabase
+        .from('quizzes')
+        .select('score, session_id')
+        .eq('status', 'completed')
+        .in('session_id', sessionHistoryIds);
+
+    // Group data by subject
+    const subjectMap: Record<string, SubjectAnalytics> = {};
+
+    sessions.forEach(session => {
+        if (!subjectMap[session.subject]) {
+            subjectMap[session.subject] = {
+                subject: session.subject,
+                totalTimeMinutes: 0,
+                sessionsCount: 0,
+                averageQuizScore: 0,
+                quizzesTaken: 0,
+                scorePercentage: 0
+            };
+        }
+        subjectMap[session.subject].totalTimeMinutes += Math.round((session.duration_seconds || 0) / 60);
+        subjectMap[session.subject].sessionsCount += 1;
+    });
+
+    // Add quiz scores
+    if (quizzes && quizzes.length > 0) {
+        // We need to map quizzes back to subjects
+        // Since quizzes don't directly have subject, we need to get the companion from session_history
+        const { data: sessionsWithCompanions } = await supabase
+            .from('session_history')
+            .select('id, companion_id')
+            .eq('user_id', userId)
+            .in('id', sessionHistoryIds);
+
+        // Get companions with their subjects
+        const companionIds = sessionsWithCompanions?.map(sc => sc.companion_id).filter(Boolean) || [];
+        const { data: companions } = await supabase
+            .from('companions')
+            .select('id, subject')
+            .in('id', companionIds);
+
+        // Create a map of session_id to subject
+        const sessionToSubject: Record<string, string> = {};
+        sessionsWithCompanions?.forEach(sc => {
+            const companion = companions?.find(c => c.id === sc.companion_id);
+            if (companion?.subject) {
+                sessionToSubject[sc.id] = companion.subject;
+            }
+        });
+
+        // Now add quiz scores to subjects
+        quizzes.forEach(quiz => {
+            const subject = sessionToSubject[quiz.session_id];
+            if (subject && subjectMap[subject] && typeof quiz.score === 'number') {
+                subjectMap[subject].averageQuizScore += quiz.score;
+                subjectMap[subject].quizzesTaken += 1;
+            }
+        });
+    }
+
+    // Calculate averages and percentages
+    Object.values(subjectMap).forEach(stat => {
+        if (stat.quizzesTaken > 0) {
+            stat.averageQuizScore = stat.averageQuizScore / stat.quizzesTaken;
+            // Assuming max score is 5 for multiple choice questions
+            stat.scorePercentage = Math.min(100, Math.round((stat.averageQuizScore / 5) * 100));
+        } else {
+            // If no quizzes, estimate based on time spent
+            stat.averageQuizScore = 0;
+            stat.scorePercentage = Math.min(100, Math.round((stat.totalTimeMinutes / 120) * 100)); // Assume 120 mins = 100%
+        }
+    });
+
+    const subjectsArray = Object.values(subjectMap);
+    if (subjectsArray.length === 0) return { strongSubject: null, weakSubject: null };
+
+    // Determine strong/weak by a combination metric
+    const maxTime = Math.max(...subjectsArray.map(s => s.totalTimeMinutes), 1);
+
+    // Sort by score percentage (with time as tiebreaker)
+    subjectsArray.sort((a, b) => {
+        // Use scorePercentage as primary metric, with time as secondary
+        if (a.scorePercentage !== b.scorePercentage) {
+            return b.scorePercentage - a.scorePercentage;
+        }
+        return b.totalTimeMinutes - a.totalTimeMinutes;
+    });
+
+    const strongSubject = subjectsArray.length > 0 ? subjectsArray[0] : null;
+    const weakSubject = subjectsArray.length > 1 ? subjectsArray[subjectsArray.length - 1] :
+        subjectsArray.length > 0 ? subjectsArray[0] : null;
+
+    return { strongSubject, weakSubject };
+};
+
 // Main function to get student dashboard data
 export const getStudentDashboardData = async (): Promise<StudentDashboardData | null> => {
     const { userId } = await auth();
@@ -359,7 +573,8 @@ export const getStudentDashboardData = async (): Promise<StudentDashboardData | 
         favoriteSubject,
         platformActiveMinutesToday,
         exitData,
-        parentalSettings
+        parentalSettings,
+        subjectAnalytics
     ] = await Promise.all([
         getWeeklyLearningTime(userId),
         getSessionsCompletedThisWeek(userId),
@@ -373,7 +588,8 @@ export const getStudentDashboardData = async (): Promise<StudentDashboardData | 
         getFavoriteSubject(userId),
         getPlatformActiveMinutesToday(userId),
         getExitAttemptsToday(userId),
-        getParentalSettings(userId)
+        getParentalSettings(userId),
+        getSubjectAnalytics(userId)
     ]);
 
     return {
@@ -387,6 +603,8 @@ export const getStudentDashboardData = async (): Promise<StudentDashboardData | 
         totalSessionsAllTime,
         totalLearningTimeAllTime,
         favoriteSubject,
+        strongSubject: subjectAnalytics.strongSubject,
+        weakSubject: subjectAnalytics.weakSubject,
         platformActiveMinutesToday: platformActiveMinutesToday,
         exitAttemptsToday: exitData.count,
         recentExits: exitData.recent,

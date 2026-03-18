@@ -4,10 +4,13 @@ import { createSupabaseAdmin } from "@/lib/supabase";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import Groq from "groq-sdk";
+import { HfInference } from '@huggingface/inference';
 
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
 });
+
+const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
 // Process voice (speech to text) - Using Groq free tier
 export async function transcribeAudio(formData: FormData) {
@@ -19,17 +22,377 @@ export async function transcribeAudio(formData: FormData) {
             file: audioFile,
             model: "whisper-large-v3-turbo",
             language: "en",
-            response_format: "text",
         });
 
-        return { success: true, text: transcription };
+        return { success: true, text: transcription.text };
     } catch (error) {
         console.error("Error transcribing audio:", error);
         return { success: false, error: "Failed to transcribe audio" };
     }
 }
 
+// lib/actions/question.actions.ts (updated part)
+
+// Detect if query is math-related using Groq AI
+async function detectMathQuery(query: string, subject?: string): Promise<boolean> {
+    try {
+        // If subject is already math, return true
+        if (subject?.toLowerCase() === 'mathematics') {
+            return true;
+        }
+
+        const detectionPrompt = `You are a classifier that determines if a student's question is a MATH question or not.
+        
+Rules:
+- Return ONLY "true" or "false" (no other text)
+- Return "true" if the question involves: equations, calculations, algebra, geometry, calculus, trigonometry, statistics, or any mathematical concepts
+- Return "false" for: history, literature, biology, chemistry (unless asking about chemical calculations), geography, general knowledge, project help, elocution topics, essay writing, etc.
+- For word problems that involve numbers but are NOT math (like "how many people live in India?"), return "false"
+- For science questions that require calculations (like "calculate force"), return "true"
+
+Examples:
+Question: "solve 2x+3=7" → true
+Question: "what is photosynthesis" → false
+Question: "calculate the area of a circle" → true
+Question: "tell me about solar system" → false
+Question: "prepare elocution on social media" → false
+Question: "if a ball is thrown at 10m/s, find its height" → true
+Question: "explain the water cycle" → false
+
+Now classify this question: "${query}"`;
+
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a precise classifier. Return only true or false."
+                },
+                {
+                    role: "user",
+                    content: detectionPrompt
+                }
+            ],
+            model: "llama-3.1-8b-instant", // Fast, free model
+            temperature: 0.1, // Low temperature for consistent results
+            max_tokens: 10, // We only need true/false
+        });
+
+        const result = completion.choices[0]?.message?.content?.toLowerCase().trim();
+        console.log("Math detection result:", result);
+        return result === 'true';
+    } catch (error) {
+        console.error("Error in math detection:", error);
+        // Fallback to basic detection if AI fails
+        const mathKeywords = ['solve', 'equation', 'calculate', 'math', 'algebra',
+            'geometry', 'calculus', 'find x', 'derivative', 'integral'];
+        const lowerQuery = query.toLowerCase();
+        return mathKeywords.some(keyword => lowerQuery.includes(keyword));
+    }
+}
+
 // Generate tutor response using Groq's free LLM (they have free tier with Llama models)
+// async function generateTutorResponse(
+//     query: string,
+//     subject: string,
+//     topic: string,
+//     grade: string,
+//     previousMessages: any[]
+// ) {
+//     try {
+//         // Build conversation history
+//         let conversationHistory = "";
+//         if (previousMessages.length > 0) {
+//             conversationHistory = previousMessages
+//                 .slice(-4) // Last 4 messages for context
+//                 .map(m => `${m.role === "user" ? "Student" : "Tutor"}: ${m.content}`)
+//                 .join("\n");
+//         }
+
+//         const systemPrompt = `You are a helpful tutor for a student in grade ${grade}. 
+//     Subject: ${subject || "General"}
+//     ${topic ? `Topic: ${topic}` : ""}
+
+//     Important rules:
+//     1. First give a clear, direct answer to their specific doubt
+//     2. Then explain the concept in simple terms (keep it grade-appropriate)
+//     3. Finally provide ONE practice question for them to try
+//     4. If they're stuck, give hints instead of full answers
+//     5. Use simple language appropriate for their grade
+//     6. Format math equations using LaTeX (e.g., $x^2 + 5$)
+
+//     Structure your response like this:
+
+//     Answer: [Direct answer to their question]
+
+//     Concept: [Explanation of the underlying concept]
+
+//     Practice: [One practice question with a hint if needed]
+
+//     Keep the tone encouraging and supportive.`;
+
+//         const userPrompt = `Student's question: ${query}
+
+//     ${conversationHistory ? `Previous conversation:\n${conversationHistory}` : ""}
+
+//     Please help the student with their doubt.`;
+
+//         // Using Groq's free Llama model
+//         const completion = await groq.chat.completions.create({
+//             messages: [
+//                 {
+//                     role: "system",
+//                     content: systemPrompt,
+//                 },
+//                 {
+//                     role: "user",
+//                     content: userPrompt,
+//                 },
+//             ],
+//             model: "llama-3.1-8b-instant", // Free model on Groq
+//             temperature: 0.7,
+//             max_tokens: 800,
+//         });
+
+//         return completion.choices[0]?.message?.content || "I'm here to help! Could you please rephrase your question?";
+//     } catch (error) {
+//         console.error("Error generating response:", error);
+//         // Fallback response
+//         return `I understand you're asking about "${query}". 
+
+// Answer: Let me help you understand this better.
+
+// Concept: This is about breaking down the problem into smaller steps. The key is to identify what's being asked and work through it systematically.
+
+// Practice: Can you try explaining what you understand so far? That will help me guide you better.`;
+//     }
+// }
+
+// Generate tutor response using Groq's free LLM
+// async function generateTutorResponse(
+//     query: string,
+//     subject: string,
+//     topic: string,
+//     grade: string,
+//     previousMessages: any[]
+// ) {
+//     try {
+//         // Build conversation history
+//         let conversationHistory = "";
+//         if (previousMessages.length > 0) {
+//             conversationHistory = previousMessages
+//                 .slice(-4)
+//                 .map(m => `${m.role === "user" ? "Student" : "Tutor"}: ${m.content}`)
+//                 .join("\n");
+//         }
+
+//         // Detect if this is a math query
+//         const isMathQuery = (q: string): boolean => {
+//             const mathKeywords = ['solve', 'equation', 'calculate', 'math', 'algebra',
+//                 'geometry', 'calculus', 'trigonometry', 'derivative',
+//                 'integral', 'graph', 'formula', 'theorem', 'proof'];
+//             const lowerQ = q.toLowerCase();
+//             return mathKeywords.some(keyword => lowerQ.includes(keyword)) ||
+//                 /[\d\+\-\*\/\(\)\^=]/.test(q) ||
+//                 /\$.*\$/.test(q);
+//         };
+
+//         const isMath = isMathQuery(query);
+
+//         let systemPrompt = "";
+
+//         if (isMath) {
+//             systemPrompt = `You are a helpful math tutor for a student in grade ${grade}.
+// Subject: Mathematics
+// ${topic ? `Topic: ${topic}` : ""}
+
+// Important rules for math responses:
+// 1. Format ALL math using LaTeX with $ delimiters
+// 2. Show step-by-step solutions with clear numbering
+// 3. Explain concepts in simple, grade-appropriate language
+// 4. Provide one practice question with a hint
+
+// Structure your response like this:
+
+// Answer: [Step-by-step solution with proper LaTeX formatting]
+
+// Concept: [Clear explanation of the mathematical concept]
+
+// Practice: [One practice question with a helpful hint]
+
+// Keep the tone encouraging and supportive.`;
+//         } else {
+//             systemPrompt = `You are a helpful tutor for a student in grade ${grade}.
+// Subject: ${subject || "General Studies"}
+// ${topic ? `Topic: ${topic}` : ""}
+
+// Important rules for general responses:
+// 1. Provide clear, accurate information
+// 2. Break down complex topics into simple explanations
+// 3. Use examples to illustrate points
+// 4. Include key takeaways or summary
+// 5. Suggest one follow-up question or activity
+
+// Structure your response with clear sections:
+
+// Answer: [Direct answer to their question]
+
+// Explanation: [Detailed explanation with examples and key points]
+
+// Summary: [Brief recap of main points]
+
+// Practice: [One engaging follow-up question or activity]
+
+// Keep explanations grade-appropriate and encouraging.`;
+//         }
+
+//         const userPrompt = `Student's question: ${query}
+
+// ${conversationHistory ? `Previous conversation:\n${conversationHistory}` : ""}
+
+// Please provide a helpful response following the requested structure.`;
+
+//         const completion = await groq.chat.completions.create({
+//             messages: [
+//                 { role: "system", content: systemPrompt },
+//                 { role: "user", content: userPrompt }
+//             ],
+//             model: "llama-3.1-8b-instant",
+//             temperature: 0.7,
+//             max_tokens: 1000,
+//         });
+
+//         return completion.choices[0]?.message?.content ||
+//             "I'm here to help! Could you please rephrase your question?";
+//     } catch (error) {
+//         console.error("Error generating response:", error);
+//         return `I understand you're asking about "${query}". 
+
+// Answer: Let me help you understand this better.
+
+// Explanation: This topic involves understanding the key concepts and applying them correctly. Here's what you need to know:
+// • First, identify the main idea
+// • Then, break it down into smaller parts
+// • Finally, connect it to what you already know
+
+// Summary: The most important thing to remember is to approach problems step by step.
+
+// Practice: Can you try explaining this concept in your own words? That will help reinforce your understanding.`;
+//     }
+// }
+
+// async function generateTutorResponse(
+//     query: string,
+//     subject: string,
+//     topic: string,
+//     grade: string,
+//     previousMessages: any[]
+// ) {
+//     try {
+//         // Build conversation history
+//         let conversationHistory = "";
+//         if (previousMessages.length > 0) {
+//             conversationHistory = previousMessages
+//                 .slice(-4)
+//                 .map(m => `${m.role === "user" ? "Student" : "Tutor"}: ${m.content}`)
+//                 .join("\n");
+//         }
+
+//         // Use AI to detect if this is a math query
+//         const isMath = await detectMathQuery(query, subject);
+
+//         let systemPrompt = "";
+
+//         if (isMath) {
+//             systemPrompt = `You are a helpful math tutor for a student in grade ${grade}.
+// Subject: Mathematics
+// ${topic ? `Topic: ${topic}` : ""}
+
+// IMPORTANT: This is a MATH question. Format your response with:
+
+// 📝 **Step-by-Step Solution:**
+// [Show clear, numbered steps with LaTeX math: $2x + 3 = 7$]
+
+// 💡 **Concept Explanation:**
+// [Explain the mathematical concept in simple terms]
+
+// ✏️ **Practice Question:**
+// [One relevant practice question with a hint]
+
+// Rules:
+// - Use LaTeX for ALL math: $equation$ for inline, $$equation$$ for displayed equations
+// - Break down complex problems into simple steps
+// - Be encouraging and grade-appropriate`;
+//         } else {
+//             systemPrompt = `You are a helpful tutor for a student in grade ${grade}.
+// Subject: ${subject || "General Studies"}
+// ${topic ? `Topic: ${topic}` : ""}
+
+// IMPORTANT: This is a GENERAL question (NOT math). Format your response with clear sections:
+
+// 📝 **Answer:**
+// [Direct answer to their question]
+
+// 💡 **Explanation:**
+// [Detailed explanation with examples and key points]
+
+// 📋 **Summary:**
+// [Brief recap of main points]
+
+// ✏️ **Practice/Follow-up:**
+// [One engaging follow-up question or activity]
+
+// Rules:
+// - Use simple, grade-appropriate language
+// - Break information into digestible chunks
+// - Be encouraging and supportive
+// - DO NOT use LaTeX math formatting unless absolutely necessary
+// - Use bullet points for lists
+// - Keep paragraphs short and readable`;
+//         }
+
+//         const userPrompt = `Student's question: ${query}
+// Grade level: ${grade}
+// ${conversationHistory ? `Previous conversation:\n${conversationHistory}` : ""}
+
+// Please provide a helpful response following the format above.`;
+
+//         const completion = await groq.chat.completions.create({
+//             messages: [
+//                 { role: "system", content: systemPrompt },
+//                 { role: "user", content: userPrompt }
+//             ],
+//             model: "llama-3.1-8b-instant",
+//             temperature: 0.7,
+//             max_tokens: 1200,
+//         });
+
+//         return completion.choices[0]?.message?.content ||
+//             "I'm here to help! Could you please rephrase your question?";
+//     } catch (error) {
+//         console.error("Error generating response:", error);
+//         // Return a helpful fallback response
+//         return `I understand you're asking about "${query}". 
+
+// 📝 **Answer:**
+// Let me help you understand this better.
+
+// 💡 **Explanation:**
+// This topic involves understanding key concepts. Here's what you need to know:
+// • First, identify the main idea
+// • Then, break it down into smaller parts
+// • Finally, connect it to what you already know
+
+// 📋 **Summary:**
+// The most important thing to remember is to approach problems step by step.
+
+// ✏️ **Practice:**
+// Can you try explaining this concept in your own words? That will help reinforce your understanding.`;
+//     }
+// }
+
+// lib/actions/question.actions.ts
+
+// Generate tutor response using Groq's free LLM
 async function generateTutorResponse(
     query: string,
     subject: string,
@@ -38,71 +401,81 @@ async function generateTutorResponse(
     previousMessages: any[]
 ) {
     try {
-        // Build conversation history
-        let conversationHistory = "";
-        if (previousMessages.length > 0) {
-            conversationHistory = previousMessages
-                .slice(-4) // Last 4 messages for context
-                .map(m => `${m.role === "user" ? "Student" : "Tutor"}: ${m.content}`)
-                .join("\n");
+        // Only send last 2 messages for context, not full history
+        const recentContext = previousMessages
+            .slice(-2) // Just last 2 messages for continuity
+            .map(m => `${m.role === "user" ? "Student" : "Tutor"}: ${m.content}`)
+            .join("\n");
+
+        // Detect if this is a math query
+        const isMath = await detectMathQuery(query, subject);
+
+        let systemPrompt = "";
+
+        if (isMath) {
+            systemPrompt = `You are a math tutor for grade ${grade}. CRITICAL RULES:
+
+1. SOLVE ONLY the current question: "${query}"
+2. IGNORE any previous conversation context
+3. If the question is incomplete, ask for clarification
+4. Show step-by-step solution with proper LaTeX: $2x + 3 = 7$
+5. Double-check your answer before responding
+6. If no solution exists, explain why clearly
+
+Format:
+📝 **Step-by-Step Solution:**
+[Clear numbered steps]
+
+💡 **Concept Explanation:**
+[Brief concept explanation]
+
+✏️ **Practice:**
+[Similar practice question]
+
+Remember: Focus ONLY on "${query}". Do not reference other problems.`;
+        } else {
+            systemPrompt = `You are a tutor for grade ${grade} student. Subject: ${subject || "General"}
+
+IMPORTANT: Answer ONLY this question: "${query}"
+IGNORE any previous conversation history.
+
+Format:
+📝 **Answer:**
+[Direct answer]
+
+💡 **Explanation:**
+[Clear explanation]
+
+📋 **Summary:**
+[Key points]
+
+✏️ **Practice:**
+[One follow-up question]`;
         }
 
-        const systemPrompt = `You are a helpful tutor for a student in grade ${grade}. 
-    Subject: ${subject || "General"}
-    ${topic ? `Topic: ${topic}` : ""}
-    
-    Important rules:
-    1. First give a clear, direct answer to their specific doubt
-    2. Then explain the concept in simple terms (keep it grade-appropriate)
-    3. Finally provide ONE practice question for them to try
-    4. If they're stuck, give hints instead of full answers
-    5. Use simple language appropriate for their grade
-    6. Format math equations using LaTeX (e.g., $x^2 + 5$)
-    
-    Structure your response like this:
-    
-    Answer: [Direct answer to their question]
-    
-    Concept: [Explanation of the underlying concept]
-    
-    Practice: [One practice question with a hint if needed]
-    
-    Keep the tone encouraging and supportive.`;
+        const userPrompt = `Current question: "${query}"
 
-        const userPrompt = `Student's question: ${query}
-    
-    ${conversationHistory ? `Previous conversation:\n${conversationHistory}` : ""}
-    
-    Please help the student with their doubt.`;
+Grade level: ${grade}
+${topic ? `Topic: ${topic}` : ""}
 
-        // Using Groq's free Llama model
+${recentContext ? `Note: Here's recent conversation for context, but focus on the new question:\n${recentContext}` : ""}
+
+Solve ONLY the current question. Do not mix with previous problems.`;
+
         const completion = await groq.chat.completions.create({
             messages: [
-                {
-                    role: "system",
-                    content: systemPrompt,
-                },
-                {
-                    role: "user",
-                    content: userPrompt,
-                },
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt }
             ],
-            model: "llama-3.1-8b-instant", // Free model on Groq
-            temperature: 0.7,
-            max_tokens: 800,
+            model: "openai/gpt-oss-120b",
+            temperature: 0.3, // Lower temperature for more accurate math
+            max_tokens: 1000,
         });
 
         return completion.choices[0]?.message?.content || "I'm here to help! Could you please rephrase your question?";
     } catch (error) {
         console.error("Error generating response:", error);
-        // Fallback response
-        return `I understand you're asking about "${query}". 
-
-Answer: Let me help you understand this better.
-
-Concept: This is about breaking down the problem into smaller steps. The key is to identify what's being asked and work through it systematically.
-
-Practice: Can you try explaining what you understand so far? That will help me guide you better.`;
+        return `I understand you're asking about "${query}". Let me help you with that.`;
     }
 }
 
@@ -210,4 +583,109 @@ export async function deleteDoubt(doubtId: number) {
 
     revalidatePath("/ask-doubt/history");
     return { success: true };
+}
+
+// Analyze image using Hugging Face Inference API with TrOCR handwritten model
+export async function analyzeImage(formData: FormData) {
+    try {
+        const imageFile = formData.get("image") as File;
+        if (!imageFile) throw new Error("No image file provided");
+
+        // Check file size (free tier limit is 1MB)
+        if (imageFile.size > 1 * 1024 * 1024) {
+            return {
+                success: false,
+                error: "Image too large. Please upload under 1MB."
+            };
+        }
+
+        // Convert image to base64
+        const bytes = await imageFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const base64Image = buffer.toString("base64");
+        const mimeType = imageFile.type;
+
+        console.log("Sending image to OCR.space for analysis...");
+
+        // Call OCR.space API with Engine 3 (best for handwriting)
+        const response = await fetch("https://api.ocr.space/parse/image", {
+            method: "POST",
+            headers: {
+                "apikey": process.env.OCR_SPACE_API_KEY!,
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+                base64Image: `data:${mimeType};base64,${base64Image}`,
+                language: "eng",
+                OCREngine: "3", // Engine 3 is best for handwritten text
+                isTable: "false",
+                scale: "true",
+                detectOrientation: "true",
+                filetype: mimeType.split('/')[1] || "jpg",
+            }),
+        });
+        console.log("OCR.space response:", response);
+        if (!response.ok) {
+            throw new Error(`OCR.space API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.IsErroredOnProcessing) {
+            return {
+                success: false,
+                error: data.ErrorMessage?.[0] || "Failed to process image"
+            };
+        }
+
+        // Extract text from the response
+        let extractedText = data.ParsedResults?.[0]?.ParsedText || "";
+        console.log("OCR.space extracted:", extractedText);
+        // Clean up the extracted text
+        extractedText = extractedText
+            .replace(/\r?\n|\r/g, ' ') // Replace newlines with spaces
+            .replace(/\s+/g, ' ') // Remove extra spaces
+            .replace(/\\text\{([^}]*)\}/g, '$1') // Remove LaTeX \text{} wrapper
+            .replace(/\\mathrm\{([^}]*)\}/g, '$1') // Remove \mathrm wrapper
+            .replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1') // Remove other LaTeX commands
+            .replace(/\{|\}/g, '') // Remove remaining braces
+            .trim();
+        console.log("OCR.space extracted:", extractedText);
+
+        // If it's a math expression like "Solve 2x + 3", keep the equation part
+        // const mathMatch = extractedText.match(/(?:solve|find|calculate)?\s*([^.!?]+)/i);
+        // if (mathMatch && mathMatch[1]) {
+        //     extractedText = mathMatch[1].trim();
+        // }
+
+        console.log("OCR.space extracted:", extractedText);
+
+        if (!extractedText || extractedText.length < 2) {
+            return {
+                success: false,
+                error: "No text detected in image. Please try with a clearer image."
+            };
+        }
+
+        return {
+            success: true,
+            extractedText: extractedText,
+        };
+
+    } catch (error: any) {
+        console.error("Error with OCR.space:", error);
+
+        // Handle specific error types
+        if (error.message?.includes('ECONNRESET') || error.code === 'ECONNRESET') {
+            return {
+                success: false,
+                error: "Network connection issue. Please check your internet and try again."
+            };
+        }
+
+        return {
+            success: false,
+            error: "Failed to analyze image. Please try again or type your question."
+        };
+    }
 }
