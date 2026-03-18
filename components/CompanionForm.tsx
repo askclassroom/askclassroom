@@ -284,7 +284,7 @@ const CompanionForm = () => {
         try {
             const companion = await createCompanion(values);
             if (companion) {
-                router.push('/companions');
+                router.push(`/companions/${companion.id}`);
             }
         } catch (error: any) {
             console.error("Failed to create companion:", error);

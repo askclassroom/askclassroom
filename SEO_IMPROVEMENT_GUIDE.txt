@@ -404,8 +404,7 @@ F. MOBILE FRIENDLINESS
 SECTION 5: CONTENT SEO (Landing Page Optimization)
 ================================================================================
 
-Your landing page (app/page.tsx) includes: Hero, AboutUs, WhyUs, GetStarted,
-PricingComponent, FAQSection, Footer.
+Your landing page (app/page.tsx) includes: Hero, FourWaysToLearn, AboutUs, GetStarted, PricingComponent, FAQSection, Footer.
 
 This is a great structure. Now you need the RIGHT CONTENT inside each section.
 
@@ -489,21 +488,21 @@ C. ABOUT US SECTION (AboutUs.tsx)
   to every student, anywhere in the world, 24 hours a day."
 
 --------------------------------------------------------------------------------
-D. WHY US SECTION (WhyUs.tsx)
+D. LEARNING FEATURES SECTION (FourWaysToLearn.tsx)
 --------------------------------------------------------------------------------
 
-  Each feature card should:
-  ✓ Have a descriptive heading (not just "Fast" — say "Instant AI Responses")
-  ✓ Include benefit-driven text (not just features — explain why it matters)
-  ✓ Use proper heading tags (H2 or H3)
+  This section now displays a 6-feature grid. Each feature card should:
+  ✓ Have a descriptive heading (e.g., "Smart Learning System")
+  ✓ Include benefit-driven text (not just features — explain why it matters, e.g., "AI adapts to your pace")
+  ✓ Use proper heading tags (H3 is good here, under the main H2)
 
-  FEATURE CARDS TO INCLUDE:
-  → "Voice-Driven AI Tutoring" — "Speak naturally and get spoken explanations"
-  → "Auto-Generated Quizzes" — "Test your knowledge instantly after each session"
-  → "Session Transcripts & Summaries" — "Review what you learned, download as PDF"
-  → "Contextual Learning Images" — "Visual aids update as your tutor explains"
-  → "24/7 Availability" — "Your AI tutor never sleeps or cancels"
-  → "Works on Any Device" — "No downloads, no app store, just open and learn"
+  FEATURE CARDS TO OPTIMIZE:
+  → "Concept Learning" — "Structured learning paths with short sessions, visual explanations, and understanding checks."
+  → "Homework Help" — "Ask any question and get step-by-step explanations tailored to your understanding."
+  → "Quiz & Practice" — "Practice with quizzes and track mastery across topics easily."
+  → "AI Chat & Summary" — "Get summaries and chat anytime about previously learned topics."
+  → "Smart Learning System" — "AI adapts to your pace and learning style for better retention."
+  → "Always Available" — "Learn anytime, anywhere with 24/7 AI support."
 
 --------------------------------------------------------------------------------
 E. CREATE A BLOG (Highest Long-Term SEO ROI)

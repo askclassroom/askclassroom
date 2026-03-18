@@ -1676,6 +1676,58 @@ CRITICAL RULES:
 //     return data[0];
 // };
 
+/**
+ * Generate an SEO-friendly slug for a companion
+ */
+export const generateSeoSlug = async (companionName: string, subject: string, topic: string) => {
+    console.log(`🔗 Generating SEO slug for ${companionName}...`);
+
+    const prompt = `
+You are an expert SEO specialist. Create a URL-friendly slug for an educational AI companion.
+Companion Name: ${companionName}
+Subject: ${subject}
+Topic: ${topic}
+
+Requirements:
+- The slug should be lowercase, using only letters, numbers, and hyphens.
+- Include relevant keywords for SEO (combining the name, subject, and topic).
+- Keep it under 60 characters.
+- Return EXACTLY the slug text, nothing else, no quotes.
+
+Example: math-genius-derivatives-practice
+`;
+
+    try {
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: "You generate SEO-friendly URL slugs. Return ONLY the slug text."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.2,
+            max_tokens: 30,
+        });
+
+        const slug = completion.choices[0]?.message?.content?.trim() || "";
+        // Clean up any potential quotes or invalid characters AI might have added
+        const cleanedSlug = slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        
+        console.log('✅ Generated SEO slug:', cleanedSlug);
+        return cleanedSlug;
+    } catch (error) {
+        console.error('❌ Error generating SEO slug:', error);
+        // Fallback to a basic slug based on name and subject if generation fails
+        const fallback = `${companionName}-${subject}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return fallback;
+    }
+};
+
 export const createCompanion = async (FormData: any) => {
     const { userId: author } = await auth();
     if (!author) throw new Error('Not authenticated');
@@ -1713,6 +1765,9 @@ export const createCompanion = async (FormData: any) => {
         console.error("Failed to generate keywords:", e);
     }
 
+    // Generate SEO slug
+    const slug = await generateSeoSlug(FormData.name, match.subject_name, FormData.topic_description);
+
     // Create companion with all hierarchy IDs
     const { data, error } = await supabase.from('companions').insert({
         name: FormData.name,
@@ -1723,6 +1778,7 @@ export const createCompanion = async (FormData: any) => {
         duration: FormData.duration,
         author,
         image_keywords,
+        slug, // <--- New slug added
         topic_id: match.topic_id,
         chapter_id: match.chapter_id,
         subject_id: FormData.subject_id,

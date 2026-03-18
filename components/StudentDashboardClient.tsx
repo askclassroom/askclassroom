@@ -447,6 +447,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { ParentalControlsModal } from "./ParentalControlsModal";
+import { SubjectAnalyticsModal } from "./SubjectAnalyticsModal";
+import { SubjectAnalytics } from "@/lib/actions/dashboard.actions";
 import {
     AreaChart,
     Area,
@@ -498,6 +500,7 @@ const StudentDashboardClient = ({ data }: StudentDashboardClientProps) => {
     const [isParentalModalOpen, setIsParentalModalOpen] = useState(false);
     const [selectedChart, setSelectedChart] = useState<'activity' | 'subjects' | 'progress' | 'insights'>('activity');
     const [chartRange, setChartRange] = useState<'week' | 'month' | 'year'>('week');
+    const [selectedSubject, setSelectedSubject] = useState<{ data: SubjectAnalytics, type: 'Strong' | 'Weak' } | null>(null);
 
     if (!data) {
         return (
@@ -635,6 +638,58 @@ const StudentDashboardClient = ({ data }: StudentDashboardClientProps) => {
         }
     ];
 
+    // Add strong subject card if available
+    if (data.strongSubject && data.strongSubject.scorePercentage > 0) {
+        cards.push({
+            label: "Strongest Subject",
+            value: data.strongSubject.subject,
+            trend: 'up',
+            trendValue: `${data.strongSubject.scorePercentage}%`,
+            suffix: "avg score",
+            isClickable: true,
+            onClick: () => setSelectedSubject({ data: data.strongSubject!, type: 'Strong' })
+        } as any);
+    }
+
+    // Add weak subject card if available and different from strong subject
+    if (data.weakSubject &&
+        data.weakSubject.scorePercentage > 0 &&
+        data.weakSubject.subject !== data.strongSubject?.subject) {
+        cards.push({
+            label: "Needs Attention",
+            value: data.weakSubject.subject,
+            trend: 'down',
+            trendValue: `${data.weakSubject.scorePercentage}%`,
+            suffix: "avg score",
+            isClickable: true,
+            onClick: () => setSelectedSubject({ data: data.weakSubject!, type: 'Weak' })
+        } as any);
+    }
+
+    // if (data.strongSubject && data.strongSubject.scorePercentage > 0) {
+    //     cards.push({
+    //         label: "Strongest Subject",
+    //         value: data.strongSubject.subject,
+    //         trend: 'up',
+    //         trendValue: `${data.strongSubject.scorePercentage}%`,
+    //         suffix: "avg score",
+    //         isClickable: true,
+    //         onClick: () => setSelectedSubject({ data: data.strongSubject!, type: 'Strong' })
+    //     } as any);
+    // }
+
+    // if (data.weakSubject && data.weakSubject.scorePercentage > 0 && data.weakSubject.subject !== data.strongSubject?.subject) {
+    //     cards.push({
+    //         label: "Needs Attention",
+    //         value: data.weakSubject.subject,
+    //         trend: 'down',
+    //         trendValue: `${data.weakSubject.scorePercentage}%`,
+    //         suffix: "avg score",
+    //         isClickable: true,
+    //         onClick: () => setSelectedSubject({ data: data.weakSubject!, type: 'Weak' })
+    //     } as any);
+    // }
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -666,11 +721,22 @@ const StudentDashboardClient = ({ data }: StudentDashboardClientProps) => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className="bg-white rounded-xl p-5 border border-gray-200 hover:border-gray-300 transition-colors"
+                        onClick={(card as any).isClickable ? (card as any).onClick : undefined}
+                        className={cn(
+                            "bg-white rounded-xl p-5 border border-gray-200 transition-all",
+                            (card as any).isClickable
+                                ? "hover:border-blue-300 hover:shadow-md cursor-pointer hover:-translate-y-1"
+                                : "hover:border-gray-300"
+                        )}
                     >
                         {/* Label */}
-                        <div className="text-sm text-gray-500 mb-2">
-                            {card.label}
+                        <div className="text-sm text-gray-500 mb-2 flex justify-between items-center">
+                            <span>{card.label}</span>
+                            {(card as any).isClickable && (
+                                <span className="text-xs text-blue-500 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    View Analytics <ChevronRight className="w-3 h-3" />
+                                </span>
+                            )}
                         </div>
 
                         {/* Value and Trend */}
@@ -895,6 +961,13 @@ const StudentDashboardClient = ({ data }: StudentDashboardClientProps) => {
                 onClose={() => setIsParentalModalOpen(false)}
                 initialEmail={parentalSettings?.parentEmail || null}
                 initialNotify={parentalSettings?.notifyOnExit || false}
+            />
+
+            <SubjectAnalyticsModal
+                isOpen={!!selectedSubject}
+                onClose={() => setSelectedSubject(null)}
+                subjectData={selectedSubject?.data || null}
+                type={selectedSubject?.type || 'Strong'}
             />
         </motion.div>
     );
