@@ -5,10 +5,17 @@ import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { newCompanionPermissions } from '@/lib/actions/companion.actions'
+import { getUserProfile } from '@/lib/actions/user.actions'
 
 const NewCompanion = async () => {
   const {userId}=await auth();
   if(!userId) redirect('/sign-in');
+
+  const existingProfile = await getUserProfile();
+  if (!existingProfile?.name || !existingProfile?.class) {
+    redirect('/onboarding');
+  }
+
   const canCreateCompanion=await newCompanionPermissions();
   return (
     <main className="lg:w-1/3 md:w-2/3 items-center justify-center">
