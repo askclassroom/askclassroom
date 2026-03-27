@@ -16,7 +16,7 @@ const teamMembers = [
     },
     {
         name: "Flavia Etukulapati",
-        role: "Co-Founder · Software Developer",
+        role: "Founder · Software Developer",
         image: "/images/founder-2.jpeg",
         linkedin: "https://www.linkedin.com/in/flavia-etukulapati-92387b233/",
         twitter: "https://x.com/TutorTalkAI",
